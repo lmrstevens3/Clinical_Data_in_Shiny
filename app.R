@@ -20,7 +20,8 @@ require(rpart)
 library(C50)
 library(ipred)
 library(DT)
-
+library(shinydashboard)
+library(RColorBrewer)
 
 multicol <- " .multicol {
                       
@@ -31,90 +32,120 @@ multicol <- " .multicol {
 column-count: 2;
 }"
 
-ui10 <- shinyUI(
-  fluidPage(
-  tags$head(tags$style(HTML(multicol))),
+uiR <- shinyUI(
+  dashboardPage( 
     
-  tags$head(tags$style(HTML(mycss))),
   # Application title
-  titlePanel("Survey Data Analysis with Shiny"),
+  dashboardHeader(title = "Clinical Survey Data Analysis with Shiny"),
   
   #####   SIDE PANEL    
   ################################################################################################################################################################################################################  
   # Sidebar 
-  fluidRow(
-  column(2, style = "background-color:#B0C4DE;",
-         
+  dashboardSidebar(
+    tags$head(
+      tags$script(
+        HTML(
+          "
+          $(document).ready(function(){
+          // Bind classes to menu items, easiet to fill in manually
+          var ids = ['subItemOne','subItemTwo','subItemThree','subItemFour'];
+          for(i=0; i<ids.length; i++){
+          $('a[data-value='+ids[i]+']').addClass('my_subitem_class');
+          }
+          
+          // Register click handeler
+          $('.my_subitem_class').on('click',function(){
+          // Unactive menuSubItems
+          $('.my_subitem_class').parent().removeClass('active');
+          })
+          })
+          "
+        )
+      )
+      ),  
+   width = 300,
+   sidebarMenu(id = "sbm",
     downloadButton("report", "Generate report"),
-    br(), 
-         
-    selectInput("dataset", "Dataset", 
-                c("esoph", "upload my own")),
-    
-    #### Data Plots and Stats
-    ########################
+    selectInput("dataset", "Dataset", c("","esoph", "upload my own")),
     conditionalPanel("input.dataset === 'upload my own'",
                      fileInput("datafile", ""), 
                      textInput("datafile_sep", "Field Seperator", value = ",")),
-    selectInput("tab", "Tab:", c("Data Plots and Statistical Tests", "Correlation and Multiple Regression", "Machine Learning", "Data", "ML Data", "Current Tab Plot Data")),
-    conditionalPanel("input.tab === 'Data Plots and Statistical Tests'", 
-      helpText("Plot 1 (left):"),               
-      selectInput("plotType","Plot 1 Type (Left):", 
-                  c("bar", "multibar", "histogram", "single boxplot", "boxplot", "grouped scatter",  "scatter")), 
-          conditionalPanel("input.plotType === 'histogram'", sliderInput("bins","Number of bins:", min = 1, max = 50, value = 1)),      
-      uiOutput("x"),   
-      uiOutput("y"),
-      uiOutput("group"),
-      
-      helpText("Plot 2 (Right):"), 
-      selectInput("plotType2"," Plot 2 Type (Right):", 
-                  c("bar", "multibar", "histogram", "single boxplot", "boxplot", "grouped scatter",  "scatter")),
-      
-          conditionalPanel("input.plotType2 === 'histogram'", sliderInput("bins2","Number of bins:", min = 1, max = 50, value = 1)),
-      uiOutput("x2"),   
-      uiOutput("y2"),
-      uiOutput("group2"),
-      checkboxInput("scb", "Conduct Statistical Test", FALSE),
-      conditionalPanel("input.scb === true", 
-        helpText("Statistical Testing for Left Plot Variables"),
+    helpText("Different Analysis Options"),
+    #### Data Plots and Stats
+    ########################
+    menuItem("Data Plots and Statistical Testing", tabName = "pst", icon = icon("bar-chart")), 
+    conditionalPanel("input.sbm === 'pst'", "",
+      selectInput("plot", "Plot Variables", c("Plot 1 (Left)", "Plot 2 (Right)")),
+      conditionalPanel("input.plot === 'Plot 1 (Left)'", "Plot 1 Variables",
+        selectInput("plotType","Plot 1 Type :", 
+                  c("bar","histogram", "multibar", "density", "single boxplot", "boxplot", "grouped scatter",  "scatter")), 
+          conditionalPanel("input.plotType === 'histogram'", sliderInput("bins","Number of bins:", min = 1, max = 50, value = 3)),
+          conditionalPanel("input.plotType === 'boxplot' || input.plotType === 'single boxplot'", checkboxInput("showPoints", "show points", TRUE)),
+          conditionalPanel("input.plotType === 'scatter' || input.plotType === 'grouped scatter'", checkboxInput("addTrend", "add trendline", FALSE)),
+        uiOutput("x"),   
+        uiOutput("y"),
+        uiOutput("group"),
+        checkboxInput("factorG", "Factor Grouping Variable", FALSE),
+        conditionalPanel("input.factorG === true", textInput("factorGVal", "Factor Cut off Value", value = "0"))
+      ),
+      conditionalPanel("input.plot === 'Plot 2 (Right)'", "Plot 2 Variables",
+        selectInput("plotType2"," Plot 2 Type:", 
+                  c("bar", "histogram", "multibar", "density", "single boxplot", "boxplot", "grouped scatter",  "scatter")),
+          conditionalPanel("input.plotType2 === 'histogram'", sliderInput("bins2","Number of bins:", min = 1, max = 50, value = 3)),
+          conditionalPanel("input.plotType2 === 'boxplot' || input.plotType2 === 'single boxplot'", checkboxInput("showPoints2", "show points", TRUE)),
+          conditionalPanel("input.plotType2 === 'scatter' || input.plotType2 === 'grouped scatter'", checkboxInput("addTrend2", "add trendline", FALSE)),
+        uiOutput("x2"),   
+        uiOutput("y2"),
+        uiOutput("group2"),
+        checkboxInput("factorG2", "Factor Grouping Variable", FALSE),
+        conditionalPanel("input.factorG2 === true", textInput("factorGVal2", "Factor Cut off Value", value = "0"))
+      ),
+      conditionalPanel("input.plot === 'Plot 1 (Left)'", "Statistical Testing for Plot 1 Variables",
         selectInput("statTest", "Statistical Tests", c("Shapiro-Wilk",  "Two sample t-test", "Wilcox rank sum - two sample", "Annova", "Kruskal–Wallis")),
-        textInput('sig', "Significance Threshold", value = .05),
-        helpText("Statistical Testing for Right Plot Variables"),
+        textInput('sig', "Significance Threshold", value = .05)
+      ),
+      conditionalPanel("input.plot === 'Plot 2 (Right)'", "Statistical Test for Plot 2 Variables",
         selectInput("statTest2", "Statistical Tests", c("Shapiro-Wilk",  "Two sample t-test", "Wilcox rank sum - two sample", "Annova", "Kruskal–Wallis")),
-        textInput('sig2', "Significance Threshold", value = .05))
-        
+        textInput('sig2', "Significance Threshold", value = .05)
+      )
       ),
     #### Correlation and MR
     ########################
-    conditionalPanel("input.tab === 'Correlation and Multiple Regression'",
-       selectInput("corMethod", "Correlation Method", c(eval(formals(cor)$method))),
-       selectInput("corUse", "NA Action", c("everything", "complete.obs", "na.or.complete", "pairwise.complete.obs")), 
-       selectInput("plotOrder", "Reorder Correlation", c("original", "AOE", "FPC", "hclust", "alphabet")),
-       conditionalPanel("input.plotOrder === 'hclust'",
-            wellPanel(selectInput("plotHclustMethod", "Method",c("ward", "single", "complete", "average", "mcquitty", "median", "centroid")),
-            numericInput("plotHclustAddrect", "Number of Rectangles", 3, 0, NA))),
-       checkboxInput("corrSig", "Significance Test", FALSE),
-       conditionalPanel("input.corrSig === true", numericInput("sigLevel", "Significane Level", 0.05, 0, 1, 0.01), selectInput("sigAction", "Insignificant Action",
-                                                                                                                               eval(formals(corrplot)$insig))),
- 
-       checkboxInput("multReg", "Build Multiple Regression Model", FALSE),
-       conditionalPanel("input.multReg === true", checkboxInput("log", "Logistic", FALSE))
-       ),
+    menuItem("Correlation and Multiple Regression", tabName = "cmr", icon = icon("th")),
+      conditionalPanel("input.sbm === 'cmr'", "Response Data",
+        selectInput("corMethod", "Correlation Method", c(eval(formals(cor)$method))),
+        selectInput("corUse", "NA Action", c("everything", "complete.obs", "na.or.complete", "pairwise.complete.obs")), 
+        selectInput("plotOrder", "Reorder Correlation", c("original", "AOE", "FPC", "hclust", "alphabet")),
+        conditionalPanel("input.plotOrder === 'hclust'",
+          wellPanel(selectInput("plotHclustMethod", "Method",c("ward", "single", "complete", "average", "mcquitty", "median", "centroid")),
+          numericInput("plotHclustAddrect", "Number of Rectangles", 3, 0, NA))),
+        checkboxInput("corrSig", "Significance Test", FALSE),
+        conditionalPanel("input.corrSig === true", numericInput("sigLevel", "Significane Level", 0.05, 0, 1, 0.01), 
+                        selectInput("inSig", "Insignificant Action", c("pch", "p-value", "blank", "n"))),
+        helpText("Check Logistic for Logistic Regression"),
+        checkboxInput("log", "Logistic", FALSE)
+      ),
     #### Machine Learning
     ########################
-    conditionalPanel("input.tab === 'Machine Learning'", 
-      selectInput("rdataset", "Response Data", 
-                 c("dataset", "upload another")),
+    menuItem("Machine Learning", tabName = "ml", icon = icon("laptop")), 
+    helpText("Response Data"),
+     conditionalPanel("input.sbm === 'ml'", "",
+      selectInput("rdataset", "Response Data", c("dataset", "upload another")),
       conditionalPanel("input.rdataset === 'upload another'",
                       fileInput("rdatafile", ""), 
                       textInput("rdatafile_sep", "Field Seperator", value = ",")),
+    helpText("Testing/Training Set"),
+     selectInput("testdata", "Testing/Training Set", c("25/75 split", "upload test data")),
+     conditionalPanel("input.testdata === 'upload test data'", "", fileInput("tdatafile", ""), textInput("tdatafile_sep", "Field Seperator", value = ",")),
+    helpText("Feature Selection and Modeling"),
       uiOutput("r"), 
       checkboxInput("factorResp", "Factor Response Variable", FALSE),
       conditionalPanel("input.factorResp === true", textInput("factorVal", "Factor Cut off Value", value = "0")),
       selectInput("fsMethod", "Feature Selection", c("average value" = "average value", "correlation with response" = "correlation with response", "information gain" = "information gain")), 
       selectInput('method', "Model Method", c("random forest", "bayesian generalized linear","CART", "C4.5 algorithm", "bagged CART", "generalized boosted modeling")), 
       selectInput('metric', "Test Metric for Method", c("Accuracy", "Kappa", "RMSE", "Rsquared")), 
-      numericInput('number', "Folds for Cross Validation", value = 3, min = 1, max = 15, step = 1),
+      div(style = "display:inline-block",numericInput('number', "Folds for Cross Validation", value = 3, min = 1, max = 15, step = 1, width = '150px')),
+      div(style = "display:inline-block",checkboxInput("LOOCV","Leave One Out", FALSE)),
       numericInput('repeats', "Repeats", value = 1, min = 1, max = 10, step = 1),
       checkboxInput('addModel2', "Add Second Model", FALSE),
       conditionalPanel("input.addModel2 === true", 
@@ -125,120 +156,137 @@ ui10 <- shinyUI(
             selectInput('metric3', "Thrid Model Metric", c("Accuracy", "Kappa", "RMSE", "Rsquared"))
         )
     )
-    )
     ),
+    menuItem("Data", tabName = 'dt', icon= icon("th")), 
+    menuItem("Feature and Response Data", tabName = "frd", icon = icon("th")), 
+    menuItem("Plot Data", tabName = "pd", icon = icon("th"))
+   )
+  ),
   #####   MAIN PANEL     
   ################################################################################################################################################################################################################  
-  # Show a plot of the generated distribution
-  column(10,
-    tabsetPanel(
-      #### Data and Stats
-      ########################
-      tabPanel("Data Plots and Statistical Tests",
-               fluidRow(
-               splitLayout(cellWidths = c("50%", "50%"), uiOutput("plot1"), uiOutput("plot2"))
-               ),
-               br(),
-               fluidRow(
-               conditionalPanel("input.scb === true",
-                 h3(textOutput("statT")),
-                 h3(textOutput("statTxt")),
-                 tags$head(tags$style("#statTxt{
-                                      font-size: 12px;
-                                      font-style: italic;
-                                      }"
-                         )), 
-                 br(),
-                 h3(textOutput("statTR"))
-                 )
-               ),
-              br(),
-              fluidRow(conditionalPanel("input.scb === true", splitLayout(cellWidths = c("50%", "50%"), DT::dataTableOutput("stat.res"),  DT::dataTableOutput("stat.res2"))))
-      ),
-      
+    dashboardBody(
+      tags$head(tags$style(HTML(multicol))),
+      tabItems(
+      tabItem( tabName = "pst",
+                  fluidRow(
+                    box(status = "warning", collapsible = TRUE, width = 6, height = 90, solidHeader = FALSE, 
+                        h3(textOutput("p1Txt")),
+                        tags$head(tags$style("#p1Txt{
+                                             font-size: 25px;
+                                             font-weight: bold;
+                                             }"
+                        ))
+                    ),
+                    box(status = "warning", collapsible = TRUE, width = 6, height = 90, solidHeader = FALSE, 
+                    h3(textOutput("p2Txt")),
+                    tags$head(tags$style("#p2Txt{
+                                             font-size: 25px;
+                                             font-weight: bold;
+                                             }"
+                   )))),
+                 fluidRow(
+                    box(uiOutput("plot1"), status = "primary", collapsiable = TRUE),
+                    box(uiOutput("plot2"), status = "primary", collapsiable = TRUE)
+                  ),
+                 fluidRow(
+                   box(title = "Plot 1 Labels", status = "primary", collapsible = TRUE, collapsed = TRUE, width = 6, textInput("xAxisLabel", "x-axis", value = ""), textInput("yAxisLabel", "y-axis", value = ""), 
+                       textInput("title", "Title", value = ""), textInput("legend", "Legend", value = ""), selectInput("fill", "Color Pallette", c('Blues', 'Solid Blue', 'BuGn', 'BuPu', 'GnBu', 'Greens','Solid Grey', 'Greys', 'Paired', 'Set1', 'Set3', 'Spectral', 'Solid Red', 'RdBu', 'RdGy'))
+                   ), 
+                   box(title = "Plot 2 Labels", status = "primary", collapsible = TRUE, collapsed = TRUE, width = 6, textInput("xAxisLabel2", "x-axis", value = ""), textInput("yAxisLabel2", "y-axis", value = ""), 
+                       textInput("title2", "Title", value = ""), textInput("legend2", "Legend", value = ""), selectInput("fill2", "Color Pallette", c('Blues', 'Solid Blue', 'BuGn', 'BuPu', 'GnBu', 'Greens','Solid Grey', 'Greys', 'Paired', 'Set1', 'Set3', 'Spectral', 'Solid Red', 'RdBu', 'RdGy'))
+                   )
+                 ),
+                  fluidRow(
+                    box(title = "Statistical Test 1 Results", status = "primary", collapsible = TRUE, width = 6, "Shapiro Wilks test is conducted on the independent variable (x). Two sample tests, Annova, and Kruskal-Wallis are conducted on the independent variable (x)
+                                  and the grouping variable.", br(), DT::dataTableOutput("stat.res")),
+                    box(title = "Statistical Test 2 Results", status = "primary", collapsible = TRUE, width = 6, "Shapiro Wilks test is conducted on the independent variable (x). Two sample tests, Annova, and Kruskal-Wallis are conducted on the independent variable (x)
+                                  and the grouping variable.", br(), DT::dataTableOutput("stat.res2"))
+                  )
+                ),
       ####Correlation and MR
       ########################
-      tabPanel("Correlation and Multiple Regression", 
+      tabItem(tabName = "cmr",
                fluidRow(
-                column(4, 
-                       radioButtons("corrVariablesStyle", "Variable Selection Style", c("Checkbox", "Selectize"), inline = T),
-                       helpText("Choose the variables to display"), 
-                       conditionalPanel("input.corrVariablesStyle === 'Checkbox'",
-                                        tags$div(class = 'multicol', checkboxGroupInput("corrVariablesCheckbox", "", c("Loading...")))),
-                       conditionalPanel("input.corrVariablesStyle === 'Selectize'",
-                                         selectizeInput("corrVariables", "", choices = c("Loading..."), multiple = T, options = list(plugins = list("drag_drop", "remove_button"), width = 500)))),
-                column(8, plotOutput("corrPlot", width = 650, height = 700))
-               ),
-               br(),
-               fluidRow(
-                 conditionalPanel("input.multReg === true", column(2, selectizeInput("IMRVariables", "Multiple Regression Independent Variables", choices = c("Loading..."), multiple = T, options = list(plugins = list("drag_drop", "remove_button"), width = 500))),
-                 column(2, selectizeInput("DMRVariable", "Multiple Regression Independent Variable", choices = c("Loading..."), multiple = F, width = 500)),
-                 column(6, DT::dataTableOutput("mr")))
-               ),
-               br(),
-               br()
-              ),
-      tabPanel("Machine Learning",
-               h3(textOutput("vf.txt")),
-               fluidRow(
-               column(3, radioButtons("mlvariablesStyle", "Variable Selection Style", c("Checkbox", "Selectize"), inline = T),
-                      helpText("Choose the variables to display"),
-                      conditionalPanel('input.mlvariablesStyle === "Selectize"', selectizeInput("mlvariables", "", choices = c("Loading..."), multiple = T, options = list(plugins = list("drag_drop", "remove_button"), width = 900))),
-                      conditionalPanel('input.mlvariablesStyle === "Checkbox"', tags$div( class = 'multicol', checkboxGroupInput("mlvariablesCheckbox", "", c("Loading..."))))),
-               column(9, uiOutput("fPlot1"))
-               ),
-               br(), 
-               h3(textOutput("iap.txt")),
-               br(),
-               fluidRow(
-               column(6, uiOutput("iPlot")), column(6, uiOutput("aPlot"))
-               ),
-               br(), 
-               h3(textOutput("at.txt")),
-               br(),
-               fluidRow(
-                DT::dataTableOutput("a1"), 
-                conditionalPanel("input.addModel2 == true", DT::dataTableOutput("a2")), 
-                conditionalPanel("input.addModel3 == true", DT::dataTableOutput("a3"))
-               ), 
-               fluidRow(
-                 conditionalPanel("input.factorResp === true", h3(textOutput("roc.txt")), tags$div(id = "plot-container", tags$img(src = "spinner.gif", id = "loading-spinner"), uiOutput("rPlot")))
+                 box(title = "Correlation Plot Variables",status = "primary", collapsible = TRUE, width = 5, 
+                     radioButtons("corrVariablesStyle", "Variable Selection Style", c("Checkbox", "Selectize"), inline = T),
+                     helpText("Choose the variables to display"), 
+                     conditionalPanel("input.corrVariablesStyle === 'Checkbox'",
+                                      tags$div(class = 'multicol', checkboxGroupInput("corrVariablesCheckbox", "", c("Loading...")))),
+                     conditionalPanel("input.corrVariablesStyle === 'Selectize'",
+                                      selectizeInput("corrVariables", "", choices = c("Loading..."), multiple = T, options = list(plugins = list("drag_drop", "remove_button"))))
                  ),
-              br(),
-              br()
-              ),
+                 box(title = "Correlation Plot",status = "primary", collapsible = TRUE, width = 7, plotOutput("corrPlot", width = 600, height = 600))
+               ),
+               
+               fluidRow(
+                 box(title = "Multiple Regression Independent Variables", status = "primary", collapsible = TRUE, width = 5, selectizeInput("IMRVariables", "Multiple Regression Independent Variables", choices = c("Loading..."), multiple = T, options = list(plugins = list("drag_drop", "remove_button")))),
+                 box(title = "Multiple Regression Dependent Variable", status = "primary", collapsible = TRUE, width = 3, selectizeInput("DMRVariable", "Multiple Regression Dependent Variable", choices = c("Loading..."), multiple = F))
+               ),
+               fluidRow(
+                 box(title = "Multiple Regression Independent Variables", status = "primary", collapsible = TRUE, width = 10, DT::dataTableOutput("mr"))
+               )
+      ),
+      tabItem(tabName = "ml",
+               fluidRow(
+                 box(title = "Feature Variables", status = "primary", collapsible = TRUE, width = 5, 
+                        radioButtons("mlvariablesStyle", "Variable Selection Style", c("Checkbox", "Selectize"), inline = T),
+                        helpText("Choose the variables to display"),
+                        conditionalPanel('input.mlvariablesStyle === "Selectize"', selectizeInput("mlvariables", "", choices = c("Loading..."), multiple = T, options = list(plugins = list("drag_drop", "remove_button")))),
+                        conditionalPanel('input.mlvariablesStyle === "Checkbox"', tags$div( class = 'multicol', checkboxGroupInput("mlvariablesCheckbox", "", c("Loading..."))))
+                 ),
+                 box(title = "Feature Selection Plot", status = "primary", collapsible = TRUE, width = 7, uiOutput("fPlot1"))
+               ),
+               fluidRow(
+                 box(title = "Importance Plot from ML Model", status = "primary", collapsible = TRUE, uiOutput("iPlot")),
+                 box(title = "Model Accuracy", status = "primary", collapsible = TRUE, uiOutput("aPlot"))
+               ),
+               fluidRow(
+                 box(title = "Model Accuracy Tables", status = "primary", collapsible = TRUE, width = NULL, DT::dataTableOutput("a1"),
+                     conditionalPanel("input.addModel2 == true", DT::dataTableOutput("a2")), 
+                     conditionalPanel("input.addModel3 == true", DT::dataTableOutput("a3"))
+                 )
+               ),
+              fluidRow(
+                 box(title = "ROC Curve (For Factored or Two Class Response Variables)", status = "primary", collapsible = TRUE, width = NULL, uiOutput("rPlot"))
+               )
+      ),
       ###### Data tabs        
       #####################
-      tabPanel("Data", DT::dataTableOutput("datasetTable")), 
-      tabPanel("Feature and Response Data", DT::dataTableOutput("mldataTable")),
-      tabPanel("Plots Data",
+      tabItem(tabName = "dt",
                fluidRow(
-                 h3(textOutput("pd.txt")),
-                 br(),
-                 column(6, DT::dataTableOutput("plotvar1")),column(6, DT::dataTableOutput("plotvar2"))
+                 box(title = "Data", status = "primary", collapsible = TRUE, width = NULL, DT::dataTableOutput("datasetTable"))
+               ) 
+      ), 
+      tabItem(tabName = "frd",
+               fluidRow(
+                 box(title = "Feature and Response Data", status = "primary", collapsible = TRUE, width = NULL,  DT::dataTableOutput("mldataTable"))
+               )
+      ), 
+      tabItem(tabName = 'pd',
+               fluidRow(
+                 box(title = "Plot 1 Data", status = "primary", collapsible = TRUE, DT::dataTableOutput("plotvar1")), 
+                 box(title = "Plot 2 Data", status = "primary", collapsible = TRUE, DT::dataTableOutput("plotvar2"))
+               ), 
+               fluidRow(
+                 box(title = "Average Value for Features ", status = "primary", collapsible = TRUE, width = NULL, DT::dataTableOutput("avgValTable"))
                ),
-               br(),
                fluidRow(
-                 h3(textOutput("ml.fs.txt")),
-                 br(),
-                 DT::dataTableOutput("avgValTable"),
-                 br(), 
-                 DT::dataTableOutput("corrValTable"),
-                 br(), 
-                 DT::dataTableOutput("igTable"),
-                 br(), 
-                 h3(textOutput("ml.im.txt")),
-                 br(),
-                 DT::dataTableOutput("ipTable")
-                )
-        )
+                 box(title = "Corrlation between Features and Response Variable", status = "primary", width = NULL, collapsible = TRUE, DT::dataTableOutput("corrValTable"))
+               ), 
+               fluidRow(
+                 box(title = "Information Gain for Features", status = "primary", collapsible = TRUE, width = NULL, DT::dataTableOutput("igTable"))
+               ),
+               fluidRow(
+                 box(title = "Importance Data from Machine Learning Model", status = "primary", collapsible = TRUE, width = NULL, DT::dataTableOutput("ipTable"))
+               )
+               
     )
-  )
-)
+    )
+    )
 ))
 
 
-server10 <- shinyServer(function(input, output, session){
+server16 <- shinyServer(function(input, output, session){
 
   
 #####   DATA    
@@ -247,13 +295,15 @@ server10 <- shinyServer(function(input, output, session){
   #allows user to input data set or try on test set of data 
   dataset <- reactive({
     datasource <- input$dataset
+    validate(
+      need(input$dataset != "", "Please select a data set")
+    )
     if(datasource == "upload my own") {
       inFile <- input$datafile
-      if(is.null(inFile)) {
-        NULL
-      } else {
+      validate(
+          need(!is.null(inFile), "Please select a data set or input a File")
+          )
         read.delim(inFile$datapath, sep = gsub("\\t", "\t", input$datafile_sep, fixed = TRUE))
-      }
     } else {
       eval(parse(text = datasource))
     }
@@ -315,7 +365,7 @@ server10 <- shinyServer(function(input, output, session){
       var.opts<-c(colnames(obj))
       selectInput("group2","Grouping Variable: ", var.opts) # uddate UI                 
     })
-    
+      
     #updates response variable for machine learning tab
     output$r <- renderUI({ 
       obj<-rdataset()
@@ -329,28 +379,45 @@ server10 <- shinyServer(function(input, output, session){
       colnames(df)[sapply(df, is.numeric)]
     })
     
+    #text headers for plots 
+    output$p1Txt <- renderText({paste("Plot 1:", sapply(input$plotType, simpleCap))})
+    output$p2Txt <- renderText({paste("Plot 2:", sapply(input$plotType, simpleCap))})
     
     #creates a plot object from the data so can create proper d3 plots 
-    plot.obj <- function(x,y,g){
+    plot.obj <- function(x,y,g,fg,fgv){
       plot.list<-list() 
       plot.list$data<- dataset()
-      if(is.null(plot.list$data)){
-        return(NULL)
-      }
-      if(!length(intersect(x, colnames(plot.list$data))) || !length(intersect(y, colnames(plot.list$data))) || !length(intersect(g, colnames(plot.list$data)))){
-        return(NULL)
-      }
+      
+      validate(need(!is.null(plot.list$data), "Please make sure a dataset is loaded"))
+      validate(need(length(intersect(x, colnames(plot.list$data))) || length(intersect(y, colnames(plot.list$data))) || length(intersect(g, colnames(plot.list$data))), "Please select a variable in dataset"))
       plot.list$x<-with(plot.list$data, get(x))
       plot.list$freqx <- as.data.frame(table(plot.list$x))
       colnames(plot.list$freqx) <- c('x', 'Frequency')
       plot.list$y<-with(plot.list$data,get(y))
       plot.list$freqy <- as.data.frame(table(plot.list$y))
       colnames(plot.list$freqy) <- c('y', 'Frequency')
-      plot.list$group <- with(plot.list$data, get(g))
-      plot.list$groups = data.frame(plot.list$x, plot.list$group)
-      colnames(plot.list$groups) <- c('x', 'g')
-      plot.list$variables <- data.frame(plot.list$x, plot.list$y)
-      colnames(plot.list$variables) <- c('x','y')
+      if(fg == TRUE){
+        plot.list$group <- with(plot.list$data, get(g))
+        plot.list$group <- sapply(plot.list$group, as.numeric)
+        above = sum(plot.list$group > fgv)
+        below = sum(plot.list$group < fgv)
+        if(above == 0 || below == 0){
+          plot.list$group <- sapply(plot.list$group, as.numeric)
+          plot.list$group <- sapply(plot.list$group, as.factor)
+        }
+        else{
+          plot.list$group = factor(as.numeric(plot.list$group) > as.numeric(fgv), labels = c(0,1))
+          plot.list$group = sapply(plot.list$group, as.numeric)
+        }
+      }
+      else{
+        plot.list$group <- with(plot.list$data, get(g))
+      }
+      plot.list$variables <- data.frame(plot.list$x, plot.list$y, plot.list$group)
+      colnames(plot.list$variables) <- c('x','y', 'g')
+      plot.list$box = na.omit(data.frame(plot.list$group, plot.list$x))
+      colnames(plot.list$box) <- c('g', 'x')
+      
       return(plot.list)
     }
     
@@ -359,19 +426,18 @@ server10 <- shinyServer(function(input, output, session){
       mlvariables <- input$mlvariables
       d <- dataset()
       rd <- rdataset()
-      if(is.null(d) || !length(intersect(mlvariables, colnames(d)))){
-        return(NULL)
-      }
-      if( !length(intersect(input$r, colnames(rd)))){
-        return(NULL)
-      }
-      if(is.null(rd) || nrow(as.data.frame(d)) != nrow(as.data.frame(rd))){
-        return(NULL)
-      }
+      validate(need(!is.null(d) || length(intersect(mlvariables, colnames(d))), "Please make sure a data set is selected and proper variables aret set"))
+      
+      validate(need(length(intersect(input$r, colnames(rd))), "please select response variable in response data/dataset"))
+      
+      validate(need(!is.null(rd) || nrow(as.data.frame(d)) == nrow(as.data.frame(rd)), "Response data has different number of rows than the dataset selected"))
       
       ml.list <- list()
+      print(input$r)
+      validate(need(length(input$r) != 0, "Please make sure response variable is set"))
+      validate(need(length(c(mlvariables)) != 0, "Please make sure dataset is selected and loaded"))
       if (input$r %in% c(mlvariables)){
-        ml.list$features <- d[, !c(mlvariables) %in% input$r ]
+        ml.list$features <- d[, c(!c(mlvariables) %in% input$r) ]
         features = mlvariables[!c(mlvariables) %in% input$r]
       }
       else{
@@ -385,37 +451,43 @@ server10 <- shinyServer(function(input, output, session){
       if(input$factorResp == TRUE){
         above = sum(ml.list$response > input$factorVal)
         below = sum(ml.list$response < input$factorVal)
-        if(above == 0 || below == 0){
-          ml.list$correct_factor <- 0 
-          return(NULL)
-        }
-        else{
-          ml.list$response.f = factor(as.numeric(ml.list$response) > as.numeric(input$factorVal), labels = c(0,1))
-          ml.list$response.f = sapply(ml.list$response.f, as.numeric)
-        }
+        validate(need(above != 0 || below != 0, "Please set a Factor Value that splits the data into more than one group"))
+        ml.list$response.f = factor(as.numeric(ml.list$response) > as.numeric(input$factorVal), labels = c(0,1))
+        ml.list$response.f = sapply(ml.list$response.f, as.numeric)
       }
       #set response variable based on factor 
       finalResp <- ifelse(input$factorResp, "response.f", "response")
       ml.list$featResp <- cbind.data.frame(ml.list$features, response = as.numeric(with(ml.list, get(finalResp))))
       
-        #Filter Objects 
-        ml.list$avgVal <- colMeans(ml.list$features, na.rm = T)
-        ml.list$avgVal <- cbind.data.frame(names(ml.list$avgVal), ml.list$avgVal)
-        colnames(ml.list$avgVal) <- c("Variable", "Column Average")
-        ml.list$corrVal <- cor(ml.list$features, ml.list$featResp$response, use = "na.or.complete")
-        ml.list$corrVal <- cbind.data.frame(rownames(ml.list$corrVal), ml.list$corrVal)
-        colnames(ml.list$corrVal) <- c("Variable", "Correlation")
-        ml.list$ig <- information.gain(response~., data = ml.list$featResp)
-        ml.list$ig <- cbind.data.frame(rownames(ml.list$ig), ml.list$ig)
-        colnames(ml.list$ig) <- c("Variable", "Feature Importance")
-
       
-      # splitting to testing and training 
-      samples = row.names(ml.list$featResp)
-      train.percent = .75
-      inTrain = samples %in% sample(samples, floor(train.percent*length(samples)))
-      train.data = ml.list$featResp[inTrain,]
-      test.data = ml.list$featResp[!inTrain,]
+      #Filter Objects 
+      ml.list$avgVal <- colMeans(ml.list$features, na.rm = T)
+      ml.list$avgVal <- cbind.data.frame(names(ml.list$avgVal), ml.list$avgVal)
+      colnames(ml.list$avgVal) <- c("Variable", "Column Average")
+      ml.list$corrVal <- cor(ml.list$features, ml.list$featResp$response, use = "na.or.complete")
+      ml.list$corrVal <- cbind.data.frame(rownames(ml.list$corrVal), ml.list$corrVal)
+      colnames(ml.list$corrVal) <- c("Variable", "Correlation")
+      ml.list$ig <- information.gain(response~., data = ml.list$featResp)
+      ml.list$ig <- cbind.data.frame(rownames(ml.list$ig), ml.list$ig)
+      colnames(ml.list$ig) <- c("Variable", "Feature Importance")
+      
+      
+      # splitting to testing and training
+      if(input$testdata ==  "upload test data"){
+        train.data = ml.list$featResp
+        tinFile <- input$datafile
+        validate(need(!is.null(tinFile), "Please select a data set or input a File"))
+        test.data =  read.delim(tinFile$datapath, sep = gsub("\\t", "\t", input$tdatafile_sep, fixed = TRUE))
+        
+      }
+      else{
+        samples = row.names(ml.list$featResp)
+        train.percent = .75
+        inTrain = samples %in% sample(samples, floor(train.percent*length(samples)))
+        train.data = droplevels(ml.list$featResp[inTrain,])
+        test.data = droplevels(ml.list$featResp[!inTrain,])
+      }
+      
       
       ml.list$train.data <- train.data
       ml.list$test.data <- test.data
@@ -423,225 +495,216 @@ server10 <- shinyServer(function(input, output, session){
       
       response.name = paste("Response-", input$r, sep = "")
       colnames(ml.list$featResp) <- c(features, response.name)
-       
+      
       return(ml.list)
     })
-  
-    output$pd.txt <- renderText("Data for Left and Right Plots under Data Plots and Statistical Testing Tab")
-    output$ml.fs.txt <- renderText("Data for Feature Selection Plots in Machine Learning Tab")
-    output$ml.im.txt <- renderText("Data for Importance Plots in Machine Learning Tab")
     
-##### Data Plots and Statistical Tests  
-################################################################################################################################################################################################################      
     
-    require(rCharts)
+    ##### Data Plots and Statistical Tests  
+    ################################################################################################################################################################################################################      
+    
     require(ggplot2)
     require(plotly)
-    options(RCHART_LIB = 'dimple')
-    options(RCHART_LIB = 'nvd3')
-    options(RCHART_LIB = 'polycharts')
-    options(RCHART_LIB = 'morris')
-    options(RCHART_LIB = 'highcharts')
-    options(RCHART_WIDTH = 500)
-    
-    #makes sure correct rcharts library is referenced for each type of plot.  
-    rchart_lib <- function(pt){
-      r_lib <- switch(pt, 
-                      boxplot = "highcharts",
-                      multibar = "nvd3",
-                      bar = "morris",
-                      "grouped scatter" = "highcharts",
-                      scatter = "highcharts", 
-                      "single boxplot" = "highcharts"
-      )
-      return(r_lib)
-    }
     
     #Plot Data
     output$plot1 <- renderUI({
-      rchart_lib1 <- rchart_lib(input$plotType)
-      switch(input$plotType, 
-             "boxplot" = showOutput("p1", rchart_lib1),
-             "histogram" =  plotlyOutput("p1hist", height = 500),
-             "multibar" = showOutput("p1", rchart_lib1),
-             "bar" = showOutput("p1", rchart_lib1),
-             "grouped scatter" = showOutput("p1", rchart_lib1),
-             "scatter" = showOutput("p1", rchart_lib1), 
-             "single boxplot" = showOutput("p1", rchart_lib1)
-             )
-      
+      plotlyOutput("p1", height = 500)
     })
     
     output$plot2 <- renderUI({
-      rchart_lib2 <- rchart_lib(input$plotType2)
-       plot <-  switch(input$plotType2, 
-             "boxplot" = showOutput("p2", rchart_lib2),
-             "histogram" = plotlyOutput("p2hist", height = 500),
-             "multibar" = showOutput("p2", rchart_lib2),
-             "bar" = showOutput("p2", rchart_lib2),
-             "grouped scatter" = showOutput("p2", rchart_lib2),
-             "scatter" = showOutput("p2", rchart_lib2), 
-             "single boxplot" = showOutput("p2", rchart_lib2)
-      )
-
+      plotlyOutput("p2", height = 500)
     })
     
-    output$p1 <- renderChart2({
-      if(input$plotType == "boxplot" || input$plotType == "multibar" || input$plotType == "bar" || input$plotType == "grouped scatter" || input$plotType ==  "scatter" || input$plotType == "single boxplot"){
-        p1 <- plot.Type(input$plotType, input$x, input$y, input$group, input$bins)
-        p1$addParams(height = 500)
-        print(p1)
-      }else {
-        return(rCharts$new())
-      }
-    })
-    
-    output$p2 <- renderChart2({
-      if(input$plotType2 == "boxplot" || input$plotType2 == "multibar" || input$plotType2 == "bar" || input$plotType2 == "grouped scatter" || input$plotType2 ==  "scatter" || input$plotType2 == "single boxplot"){
-        p2 <- plot.Type(input$plotType2, input$x2, input$y2, input$group2, input$bins2)
-        p2$addParams(height = 500)
-        print(p2)
-      }
-      else{
-        return(rCharts$new())
-      }
-    })
-    
-    output$p1hist <- renderPlotly({
-      if(input$plotType == "histogram"){
-        p1hist <- plot.Type(input$plotType, input$x, input$y, input$group, input$bins)
-        print(p1hist)
-      }else{
-        return(NULL)
-      }
-    })
-    
-    
-    output$p2hist <- renderPlotly({
-      if(input$plotType2 == "histogram"){
-        p2hist <- plot.Type(input$plotType2, input$x2, input$y2, input$group2, input$bins2)
-        print(p2hist)
-      }else{
-          return(NULL)
-        }
-    })
-
-    plot.Type<-function(pt, x, y , g, bins){
-      plot.df <- plot.obj(x,y,g)
-      if(!is.null(plot.df$x) || !is.null(plot.df$y) || !is.null(plot.df$g)){
-        freqx.dp <- plot.df$freqx
-        colnames(freqx.dp) <- c(x, 'Frequency')
-        var.hp <- plot.df$variables
-        var.hp <- as.data.frame(sapply(var.hp, as.numeric))
-        colnames(var.hp) <- c(x,y)
-        var.hp.gs <- cbind.data.frame(plot.df$variables, plot.df$group)
-        var.hp.gs <- as.data.frame(sapply(var.hp.gs, as.numeric))
-        colnames(var.hp.gs) <- c(x, y , 'g')
-        var.hp.gs$g <- as.factor(var.hp.gs$g)
-        
-        
-        switch(pt,
-               "single boxplot" = {
-                 #box plot stats
-                 dat = data.frame(boxplot(plot.df$variables$x, data = plot.df$variables, plot = F)$stats)
-                 #data frame with no headers
-                 bwstats = setNames(as.data.frame(dat[complete.cases(dat),]),nm = NULL)
-                 
-                 #make chart and set parameters 
-                 p <- Highcharts$new()
-                 p$set(series = list(list(name = x, data = bwstats)))
-                 p$xAxis(title = list(text = x))
-                 p$chart(type = 'boxplot')
-               },
-               "boxplot" = {
-                 # compute boxplot statistics and cast it as a dataframe with no headers
-                 dat = data.frame(boxplot(x ~ g, data = plot.df$groups, plot = F)$stats)
-                 # compute boxplot statistics and cast it as a dataframe with no headers
-                 bwstats = setNames(as.data.frame(dat[complete.cases(dat),]),nm = NULL)
-                 
-                 #initialize
-                 p <- Highcharts$new()
-                 
-                 # pass data as a list of lists
-                 p$set(series = list(list(name = g, data = bwstats)))
-                 # set xaxis/yaxis titles and labels
-                 p$xAxis(categories = levels(plot.df$groups$group), title = list(text = g))
-                 p$yAxis(title = list(text = x))
-                 p$chart(type = 'boxplot')
-               },
-               "histogram" = {
-                 #bins for histogram
-                  hx <- plot.df$variables[,1]
-                  hx<- sapply(hx, as.numeric)
-                  breaks<- seq(min(hx), max(hx), length.out = bins + 1)
-                  hist <- hist(hx, breaks = breaks , plot = FALSE)
-                  hist.df <- cbind.data.frame(hist$counts, hist$breaks[1:(length(hist$breaks) - 1)])
-                  ggh <-ggplot(hist.df, aes(x = hist$counts), group = hist$counts) + geom_bar(alpha=0.5, position= "identity", fill = "skyblue3")
-                  ggh <- ggh + labs( x = x) + theme(axis.line = element_line(colour = 'gray', size = .75), panel.background = element_blank(), plot.background = element_blank()) 
-                  p <- ggplotly(ggh)
-                },
-               "multibar" 	= {p <-	nPlot(Freq ~ x , group = 'g', data = data.frame(table(plot.df$groups)), type = 'multiBarChart')
-               },        
-               "bar" =	{p <- mPlot(x = 'x', y = list('Frequency'), data = plot.df$freqx, type = 'Bar', labels = list("Count"))
-               
-               },
-               "grouped scatter" = {p <- hPlot(x = x, y = y, data = var.hp.gs, type = 'scatter', group = 'g')
-               },
-               "scatter" ={p <- hPlot(x = x, y = y , data = var.hp , type = 'scatter')
-               }
-        )
-
-      return(p)
-      }  
-    }
+    output$p1 <- renderPlotly({
+      validate(need(input$dataset != "", "Please select a data set"))
+      p1 <- plot.Type(input$plotType, input$x, input$y, input$group, input$bins, input$factorG, input$factorGVal, input$showPoints, input$xAxisLabel, input$yAxisLabel, input$legend, input$title, input$fill, input$addTrend)
+      print(p1)
       
+    })
+    
+    output$p2 <- renderPlotly({
+      validate(need(input$dataset != "", "Please select a data set"))
+      p2 <- plot.Type(input$plotType2, input$x2, input$y2, input$group2, input$bins2, input$factorG2, input$factorGVal2, input$showPoints2, input$xAxisLabel2, input$yAxisLabel2, input$legend2, input$title2, input$fill2, input$addTrend2)
+      print(p2)
+      
+    })
+    
+    plot.Type<-function(pt, x, y , g, bins, fg, fgv, ip, xa, ya, gl, t, c, at){
+      plot.df <- plot.obj(x,y,g, fg, fgv)
+      .theme <- theme(axis.line = element_line(colour = 'gray', size = .75), panel.background = element_blank(), plot.background = element_blank(), legend.position="right")  
+      xaxisDf = switch(pt, "single boxplot" = x,
+                       "boxplot" = paste(x, "by", g),
+                       "histogram" = x, 
+                       "density" = x, 
+                       "multibar" = x,
+                       "bar" = x,
+                       "scatter" = x,
+                       "groupedscatter" = x
+      )
+      yaxisDf = switch(pt, "single boxplot" = "",
+                       "boxplot" = "",
+                       "histogram" = paste('Frequency of', y), 
+                       "density" = "Density", 
+                       "multibar" = y,
+                       "bar" = "Count",
+                       "scatter" = y,
+                       "groupedscatter" = y
+      )
+      legend = gl
+      title = t
+      colourCount  = switch(pt, "single boxplot" = 1,
+                            "boxplot" = length(table(plot.df$box$g)),
+                            "histogram" = 1, 
+                            "density" = length(table(plot.df$variables$x)), 
+                            "multibar" = length(table(plot.df$variables$g)),
+                            "bar" = length(table(plot.df$variables$x)),
+                            "scatter" = length(table(plot.df$variables$x)),
+                            "groupedscatter" = length(table(plot.df$variables$x))
+      )
+      solid = ifelse(c == "Solid Blue" || c == "Solid Grey" || c == "Solid Red", TRUE, FALSE )
+      if(solid == FALSE){
+        getPalette = colorRampPalette(brewer.pal(9, c))
+      }else{
+        if(c == "Solid Blue"){ getPalette = brewer.pal(9, "Blues")[8]}
+        if(c == "Solid Grey"){ getPalette = brewer.pal(9, "Greys")[6]}
+        if(c == "Solid Red"){ getPalette = brewer.pal(9, "Reds")[7]}
+      }
+      
+      xaxis = ifelse(xa == "", xaxisDf, xa)
+      yaxis = ifelse(ya == "", yaxisDf, ya)
+      
+      switch(pt,
+             "single boxplot" = {
+               if(solid == FALSE){ fill = getPalette[7]}
+               else{fill = getPalette}
+               if(ip == TRUE){
+                 gg <-ggplot(plot.df$box, aes(x = as.factor(0), y = x)) + geom_boxplot() + geom_point(position = "jitter", alpha = 0.5) 
+                 gg <- gg + labs( fill = fill, x = xaxis, y = yaxis)  + ggtitle(title) + .theme + guides(fill=guide_legend(nrow=2))
+                 p <- ggplotly(gg)
+               }
+               else{
+                 gg <-ggplot(plot.df$box, aes(x = as.factor(0), y = x)) + geom_boxplot() 
+                 gg <- gg + labs( fill = fill, x = xaxis, y = yaxis) + ggtitle(title) + .theme + guides(fill=guide_legend(nrow=2))
+                 p <- ggplotly(gg) 
+               }
+             },
+             "boxplot" = {
+               if(ip == TRUE){
+                 gg <-ggplot(plot.df$box, aes(x = as.factor(g), y = x, fill = as.factor(g))) + geom_boxplot() + geom_point(position = "jitter", alpha = 0.5) 
+                 gg <- gg + labs(fill = legend, x = xaxis, y = yaxis) + scale_fill_manual(values = getPalette(colourCount)) + ggtitle(title) + .theme + guides(fill=guide_legend(nrow=2))
+                 p <- ggplotly(gg) 
+               }
+               else{
+                 gg <-ggplot(plot.df$box, aes(x = as.factor(g), y = x, fill = as.factor(g))) + geom_boxplot() 
+                 gg <- gg + labs(fill = legend , x = xaxis, y = yaxis) + scale_fill_manual(values = getPalette(colourCount)) + ggtitle(title) + .theme + guides(fill=guide_legend(nrow=2))
+                 p <- ggplotly(gg) 
+               }
+             },
+             "histogram" = {
+               if(solid == FALSE){ fill = getPalette[7]}
+               else{fill = getPalette}
+               stat_bin.test <- stat_bin(data = plot.df$variables, aes (x = x))
+               print(stat_bin.test$stat_params$bins)
+               validate(need(!is.null(stat_bin.test$stat_params$bins), "Histograms are for Continuous Variables, consider using a bar chart"))
+               gg <-ggplot(plot.df$variables, aes(x = x)) + geom_histogram(alpha=0.5, position= "identity", fill = fill, bins = bins)
+               gg <- gg + labs( x = xaxis, y = yaxis) + ggtitle(title) + .theme + guides(fill=guide_legend(nrow=2)) 
+               p <- ggplotly(gg)
+             },
+             "density" = {
+               gg <-ggplot(plot.df$variables, aes(x = x, fill = as.factor(x), group 	= as.factor(x))) + geom_density(alpha=.75)
+               gg <- gg + labs(fill = legend, x = xaxis, y = yaxis) + scale_fill_manual(values = getPalette(colourCount)) + ggtitle(title) + .theme + guides(fill=guide_legend(nrow=2))
+               p <- ggplotly(gg) 
+             },
+             "multibar" = {
+               gg <- ggplot(plot.df$variables, aes(x = x, fill = as.factor(g), group = as.factor(g))) + geom_bar(position = "dodge") 
+               gg <- gg + labs(fill = legend, x = xaxis, y = yaxis) + scale_fill_manual(values = getPalette(colourCount)) + ggtitle(title) + .theme + guides(fill=guide_legend(nrow=2))
+               p <- ggplotly(gg) 
+             },        
+             "bar" =	{
+               if(solid == FALSE){ 
+                 fill = as.factor(x)
+                 print(fill)
+                 scale = getPalette(colourCount)
+                 print(scale)
+               }
+               else{
+                 fill = x
+                 scale = getPalette
+               }
+               gg <-ggplot(plot.df$variables, aes(x = x, group = as.factor(x), fill = fill)) + geom_bar(position= "dodge")
+               gg <- gg + labs( x = xaxis, y = yaxis) + scale_fill_manual(values = scale) + ggtitle(title) + .theme + guides(fill=guide_legend(nrow=2))
+               p <- ggplotly(gg) 
+             },
+             "grouped scatter" = {
+               gg <- ggplot(plot.df$variables, aes(x = x, y = y, group = g ,color = as.factor(g))) + geom_point() 
+               gg <- gg + labs( color = legend, x = xaxis, y = yaxis) + scale_fill_manual(values = getPalette(colourCount)) + ggtitle(title) + .theme + guides(fill=guide_legend(nrow=2))
+               if(at == TRUE){
+                 gg <- gg + stat_smooth()
+               }
+               p <- ggplotly(gg) 
+             },
+             "scatter" ={
+               gg <-ggplot(plot.df$variables, aes(x = x, y = as.factor(y))) + geom_point(color = c)
+               gg <- gg + labs( x = xaxis, y = yaxis) + scale_fill_manual(values = getPalette(colourCount)) +  ggtitle(title) + .theme + guides(fill=guide_legend(nrow=2))
+               if(at == TRUE){
+                 gg <- gg + stat_smooth()
+               }
+               p <- ggplotly(gg) 
+             }
+      )
+      
+      return(p)
+    }
+    
     #statistical Testing
-    stat.tests <- function(st, sig, x, y, g){
-      var.df <- plot.obj(x,y,g)
-      if(!is.null(var.df$groups)){
-        x.g <- table(var.df$groups)
+    stat.tests <- function(st, sig, x, y, g, fg, fgv){
+      var.df <- plot.obj(x,y,g, fg, fgv)
+      if(!is.null(var.df$variables)){
+        groups = cbind.data.frame(as.numeric(var.df$x), droplevels(as.factor(var.df$group)))
+        colnames(groups) <- c('x','g')
         conf.level = 1 - as.numeric(sig)
         p.val = sig
-        x.st = as.numeric(var.df$groups$x)
-        x.g.sort <- var.df$groups[order(var.df$groups$g),]
+        x.st = as.numeric(var.df$x)
+        x.g.sort <- groups[order(groups$g),]
         colnames(x.g.sort) <- c("x", "g")
         x.g.sort$x <-as.numeric(x.g.sort$x)
-  
+        
         t.dat <- switch(st, 
-               "Shapiro-Wilk" = {t <- shapiro.test(x.st)
-                                tab <- cbind(t$statistic, t$p.value)
-                                colnames(tab) <- c("W-statistic", "P-value")
-                                row.names(tab) <- c("Shapiro-Wilk")},
-               "Two sample t-test" = {t <- t.test(x.g[,1], x.g[,2], conf.level = conf.level)
-                                    tab <- cbind(t$statistic, t$p.value)
-                                    colnames(tab) <- c("T-statistic", "P-value")
-                                    row.names(tab) <- c("Welch Two Sample t-test")}, 
-               "Wilcox rank sum - two sample" = {t <- wilcox.test(x.g[,1], x.g[,2], conf.level = conf.level)
-                                    tab <- cbind(t$statistic, t$p.value)
-                                    colnames(tab) <- c("W-statistic", "P-value")
-                                    row.names(tab) <- c("Wilcoxon rank sum test with continuity correction")},
-               "Annova" =  {t <- aov(x ~ g, data = x.g.sort)
-                            tab <- as.data.frame(summary(t)[[1]])
-                            row.names(tab) <- c(g,"Residuals")
-                            },
-               "Kruskal–Wallis" = {t <- kruskal.test(x  ~ g , data = x.g.sort)
-                                  tab <- cbind(t$statistic, t$p.value)
-                                  colnames(tab) <- c("Chi-squared", "P-value")}
-               )
-      return(tab)
+                        "Shapiro-Wilk" = {t <- shapiro.test(x.st)
+                        tab <- cbind(t$statistic, t$p.value)
+                        colnames(tab) <- c("W-statistic", "P-value")
+                        row.names(tab) <- c("Shapiro-Wilk")},
+                        "Two sample t-test" = {validate(need(nlevels(groups$g) == 2, "A t-test requires exactly two groups, consider using Annova or factoring the grouping variable"))
+                          t <- t.test(x ~ g, conf.level = conf.level, data = groups)
+                          tab <- cbind(t$statistic, t$p.value)
+                          colnames(tab) <- c("T-statistic", "P-value")
+                          row.names(tab) <- c("Welch Two Sample t-test")}, 
+                        "Wilcox rank sum - two sample" = {validate(need(nlevels(groups$g) == 2, "A Wilcox rank sum test requires exactly two groups, consider using Annova or factoring the grouping variable"))
+                          t <- wilcox.test(x ~ g, conf.level = conf.level, data = groups)
+                          tab <- cbind(t$statistic, t$p.value)
+                          colnames(tab) <- c("W-statistic", "P-value")
+                          row.names(tab) <- c("Wilcoxon rank sum test with continuity correction")},
+                        "Annova" =  {t <- aov(x ~ g, data = x.g.sort)
+                        tab <- as.data.frame(summary(t)[[1]])
+                        row.names(tab) <- c(g,"Residuals")
+                        },
+                        "Kruskal–Wallis" = {t <- kruskal.test(x  ~ g , data = x.g.sort)
+                        tab <- cbind(t$statistic, t$p.value)
+                        colnames(tab) <- c("Chi-squared", "P-value")}
+        )
+        return(tab)
       }
     }
     
     output$statT <- renderText("Statistical Testing")
     output$statTxt <- renderText("Shapiro Wilks test is conducted on the independent variables. Two sample tests, Annova, and Kruskal-Wallis are conducted on the independent variables
                                   and the grouping variables")
-    output$statTR <- renderText(paste(sapply(input$statTest, simpleCap), "Results" ))
     
-    output$stat.res <- DT::renderDataTable(stat.tests(input$statTest, input$sig, input$x, input$y, input$group), options = list(
-      autoWidth = FALSE), class = 'table-bordered table-condensed table-striped table-compact')
+    output$stat.res <- DT::renderDataTable(stat.tests(input$statTest, input$sig, input$x, input$y, input$group, input$factorG, input$factorGVal), options = list(
+      autoWidth = FALSE, scrollX=TRUE), class = 'table-bordered table-condensed table-striped table-compact',caption = paste(sapply(input$statTest, simpleCap), "Results" ))
     
-    output$stat.res2 <- DT::renderDataTable(stat.tests(input$statTest2, input$sig2, input$x2, input$y2, input$group2), options = list(
-      autoWidth = FALSE), class = 'table-bordered table-condensed table-striped table-compact')
+    output$stat.res2 <- DT::renderDataTable(stat.tests(input$statTest2, input$sig2, input$x2, input$y2, input$group2,  input$factorG2, input$factorGVal2), options = list(
+      autoWidth = FALSE, scrollX=TRUE), class = 'table-bordered table-condensed table-striped table-compact', caption = paste(sapply(input$statTest2, simpleCap), "Results" ))
     
 ##### Correlation and Multiple Regression
 ################################################################################################################################################################################################################      
@@ -665,22 +728,18 @@ server10 <- shinyServer(function(input, output, session){
     })
     
     observe({
-      if(input$multReg == TRUE)
         updateSelectInput(session, "IMRVariables", choices = numericColumns(), selected = numericColumns())
     })
     
     observe({
-    if(input$multReg == TRUE)      
       updateSelectInput(session, "IMRVariables", selected = input$corrVariablesCheckbox)
     })
     
     observe({
-      if(input$multReg == TRUE)
         updateSelectInput(session, "DMRVariable", choices = c(input$corrVariablesCheckbox))
     })
     
     observe({
-      if(input$multReg == TRUE)
         updateSelectInput(session, "DMRVariable", selected = c(input$corrVariablesCheckbox)[1])
     })
     
@@ -704,7 +763,8 @@ server10 <- shinyServer(function(input, output, session){
     correlation <- reactive({
       data <- dataset()
       corrvariables <- input$corrVariables
-      if(is.null(data) || !length(intersect(corrvariables, colnames(data)))) {
+      validate(need(input$dataset != "", "Please select a data set"))
+      if(!length(intersect(corrvariables, colnames(data)))) {
         NULL
       } else {
         cor(dataset()[,input$corrVariables], use = input$corUse, method = input$corMethod)
@@ -726,10 +786,12 @@ server10 <- shinyServer(function(input, output, session){
       
       order = input$plotOrder
       p.mat = sigConfMat()[[1]]
-      sig.level = ifelse(input$sigTest, input$sigLevel, NULL)
+      sig.level = if(input$corrSig) {input$sigLevel} else {NULL}
+      in.sig = if(input$corrSig) {input$inSig} else {NULL}
+
       
       #options for correlation plot     
-      corrplot::corrplot.mixed(corrvals, upper = "circle", lower = "number", order = order, p.mat = p.mat , sig.level = sig.level, insig = "pch", tl.pos = "lt")
+      corrplot::corrplot(corrvals, method = "circle", order = order, p.mat = p.mat , sig.level = sig.level, insig = in.sig , tl.pos = "lt")
       
     })
     
@@ -751,28 +813,29 @@ server10 <- shinyServer(function(input, output, session){
     }
     
     #multiple regression
-    mult.reg <- function(dvmr, cv, log, mr){
-      if(mr == TRUE){
-        fam = ifelse(log, 'binomial', 'gaussian')
-        y.df = dataset()[,dvmr]
-        x.df = dataset()[,!cv %in% dvmr]
-        mr.df <- cbind.data.frame(x.df, y.df)
-        colnames(mr.df) <- c(c(cv[!cv %in% dvmr]), 'y')
-        fit.mr <- glm(y~., family = fam , data = mr.df )
-        result.mr <- summary(fit.mr)$coefficients
-        return(result.mr)
-      }
+    mult.reg <- function(dvmr, cv, log){
+      if(is.null(cv) || is.null(dvmr)){return(NULL)}
+      fam = ifelse(log, 'binomial', 'gaussian')
+      y.df = dataset()[,dvmr]
+      x.df = dataset()[,c(cv[!cv %in% dvmr])]
+      mr.df <- cbind.data.frame(x.df, y.df)
+      colnames(mr.df) <- c(c(cv[!cv %in% dvmr]), 'y')
+      fit.mr <- glm(y~., family = fam , data = mr.df )
+      result.mr <- summary(fit.mr)$coefficients
+      return(result.mr)
     }
     
     output$mr <- DT::renderDataTable({
-      mr.df <- as.data.frame(mult.reg(input$DMRVariable, input$IMRVariables, input$log, input$multReg))
+      validate(need(input$DMRVariable != 0, "Please make sure a dataset is selected and the indpendent and dependent variables are set"))
+      validate(need(input$IMRVariables != 0, "Please make sure a dataset is selected and the indpendent and dependent variables are set"))
+      mr.df <- as.data.frame(mult.reg(input$DMRVariable, input$IMRVariables, input$log))
       dat <- datatable(mr.df, options = list(autoWidth = FALSE), 
-                                    class = 'table-bordered table-condensed table-striped table-compact', caption = "Multiple Regression Coefficient Results" 
-                                    ) %>%
-      formatStyle('Pr(>|t|)', color = styleInterval(0.05, c('red','black')), backgroundColor = styleInterval(0.05, c('yellow', 'white'))) %>% 
-      formatRound(1:length(mr.df), 5)
+                       class = 'table-bordered table-condensed table-striped table-compact', caption = "Multiple Regression Coefficient Results" 
+      ) %>%
+        formatStyle('Pr(>|t|)', color = styleInterval(0.05, c('red','black')), backgroundColor = styleInterval(0.05, c('yellow', 'white'))) %>% 
+        formatRound(1:length(mr.df), 5)
       return(dat)
-      })
+    })
     
  #####   MACHINE LEARNING    
 ################################################################################################################################################################################################################    
@@ -847,15 +910,13 @@ server10 <- shinyServer(function(input, output, session){
                  fp$data(name = "Features", as.numeric(mlo$ig$'Feature Importance'))
                }
         )
-      print(fp)  
       return(fp)
     }
     require(rCharts)
-    options(RCHART_WIDTH = 500)
+    options(RCHART_WIDTH = 400)
     
     #plot Importance
     output$iPlot <- renderUI({
-      if(is.null("ip1") || is.null("ip.rp") || is.null("ip.bgl")) return(NULL)
       switch(input$method,  
              "random forest" = showOutput("ip1", "highcharts"), 
              "bayesian generalized linear" = DT::dataTableOutput("ip.bgl"),
@@ -868,11 +929,11 @@ server10 <- shinyServer(function(input, output, session){
     
     output$ip1 <- renderChart2({
       if(input$method == "random forest" || input$method == "C4.5 algorithm" || input$method == "bagged CART" || input$method == "generalized boosted modeling"){
-        ip1 <- var.imp(input$method, input$metric, input$number, input$repeats)[[2]]
+        ip1 <- var.imp(input$method, input$metric, input$number, input$repeats, input$LOOCV)[[2]]
         print(ip1)
       }
       else{
-        return(rCharts$new)
+        return(Highcharts$new())
       }
       
     })
@@ -880,8 +941,8 @@ server10 <- shinyServer(function(input, output, session){
     
     output$ip.bgl <- DT::renderDataTable({
       if(input$method == "bayesian generalized linear"){
-        df <- var.imp(input$method, input$metric, input$number, input$repeats)[[2]] 
-        dt <- datatable(df, options = list(autoWidth = FALSE), 
+        df <- var.imp(input$method, input$metric, input$number, input$repeats, input$LOOCV)[[2]] 
+        dt <- datatable(df, options = list(autoWidth = FALSE, scrollX=TRUE), 
                        class = 'table-bordered table-condensed table-striped table-compact', caption = "Bayesian Generalized Linear Regression Results") %>%
           formatStyle('Pr(>|t|)', color = styleInterval(0.05, c('red','black')), backgroundColor = styleInterval(0.05, c('yellow', 'white'))) %>% 
           formatRound(1:length(df), 5)
@@ -891,28 +952,28 @@ server10 <- shinyServer(function(input, output, session){
     
     output$ip.rp <-renderPlot({
       if(input$method == "CART"){
-        ip.rp.list <- var.imp(input$method, input$metric, input$number, input$repeats)
+        ip.rp.list <- var.imp(input$method, input$metric, input$number, input$repeats, input$LOOCV)
         ip.rp <- ip.rp.list[[2]]
       }
     })
            
     #model based on input 
-    ml.model <- function(mt, m, n, r){
+    ml.model <- function(mt, m, n, r, ilo){
       mlo <- ml.obj()
-      print(head(mlo$response))
-      print(head(mlo$train.data))
-      if(is.null(mlo$response) || is.null(mlo$train.data)) return(NULL)
       nt = 1
+
       colnames(mlo$train.data)[ncol(mlo$train.data)] <- "response"
       train.data = mlo$train.data
+
       #Control for Cross Validation and Repeats
-      number <- n
+      ifelse(ilo == TRUE, number <- "LOOCV", number <- n)
+      print(number)
       repeats <-r
       metric <- m
       control <- trainControl(method="repeatedcv", number=number, repeats=repeats)
 
-      withProgress(message = 'Machine Learning in progress', value=i, {
-          incProgress(nt, detail = paste(n, input$method, input$fsMethod))
+      withProgress(message = 'Machine Learning in progress', value=nt, {
+          incProgress(nt/6, detail = paste(nt, input$method))
 
       #model 
       set.seed(7)
@@ -923,16 +984,15 @@ server10 <- shinyServer(function(input, output, session){
                           "bagged CART" = train(response~., data=na.omit(train.data), method="treebag", metric="RMSE", trControl=control),
                           "generalized boosted modeling" = train(response~., data=na.omit(train.data), method="gbm", metric=metric, trControl=control, verbose=FALSE)
                       )
-
+      nt = nt + 1
       incProgress(nt, detail = paste("next step"))
       })
       return(model)
     }
   
     #Importance plot or linear model summary based on input 
-    var.imp <- function(mt, m, n, r){
-      fit <- ml.model(mt, m, n, r)
-      if(is.null(fit)) return(NULL)
+    var.imp <- function(mt, m, n, r, ilo){
+      fit <- ml.model(mt, m, n, r, ilo)
         switch(mt, 
                "random forest" = {      
                  require(randomForest)
@@ -990,17 +1050,35 @@ server10 <- shinyServer(function(input, output, session){
                }
         )
         df_ip <- list(imp.df, ip)
-        print(df_ip)
         return(df_ip)
       }
         
     
-    output$a1 <- DT::renderDataTable(accuracy(input$method, input$metric, input$number, input$repeats)[[1]], options = list(
-      autoWidth = FALSE), class = 'table-bordered table-condensed table-striped table-compact', caption = paste("Model Results:", sapply(input$method, simpleCap)))
-    output$a2 <- DT::renderDataTable(accuracy(input$method2, input$metric2, input$number, input$repeats)[[1]], options = list(
-      autoWidth = FALSE), class = 'table-bordered table-condensed table-striped table-compact', caption = paste("Model 2 Results:", sapply(input$method2, simpleCap)))
-    output$a3 <- DT::renderDataTable(accuracy(input$method3, input$metric3, input$number, input$repeats)[[1]], options = list(
-      autoWidth = FALSE), class = 'table-bordered table-condensed table-striped table-compact', caption = paste("Model 3 Results:", sapply(input$method3, simpleCap)))
+    output$a1 <- DT::renderDataTable({
+      validate(need(input$mlButton != 0 , "Please set Machine Learning Variables and Options and Click the 'Run Machine Learning' button"))
+      a1.t <- accuracy(input$method, input$metric, input$number, input$repeats, input$LOOCV)[[1]]
+      print(a1.t)
+      a1.df <- as.list.data.frame(a1.t)
+      a1 <- datatable(a1.df, options = list(
+        autoWidth = FALSE), class = 'table-bordered table-condensed table-striped table-compact', caption = paste("Confusion Matrix with Test Data for Model:", input$method))
+      return(a1)
+    })
+    output$a2 <- DT::renderDataTable({
+      validate(need(input$mlButton != 0 , "Please set Machine Learning Variables and Options and Click the 'Run Machine Learning' button"))
+      a2.t <- accuracy(input$method2, input$metric2, input$number, input$repeats, input$LOOCV)[[1]]
+      a2.df <- as.list.data.frame(a1.t)
+      a2 <- datatable(a2.df, options = list(
+        autoWidth = FALSE), class = 'table-bordered table-condensed table-striped table-compact', caption = paste("Confusion Matrix with Test Data for Model:", input$method))
+      return(a2)
+    })
+    output$a3 <- DT::renderDataTable({
+      validate(need(input$mlButton != 0 , "Please set Machine Learning Variables and Options and Click the 'Run Machine Learning' button"))
+      a3.t <- accuracy(input$method3, input$metric3, input$number, input$repeats, input$LOOCV)[[1]]
+      a3.df <- as.list.data.frame(a3.t)
+      a3 <- datatable(a3.df, options = list(
+        autoWidth = FALSE), class = 'table-bordered table-condensed table-striped table-compact', caption = paste("Confusion Matrix with Test Data for Model:", input$method))
+      return(a3)
+    })
 
     
     output$rPlot <- renderUI({
@@ -1008,7 +1086,7 @@ server10 <- shinyServer(function(input, output, session){
     })
 
     require(rCharts)
-    options(RCHART_WIDTH = 650)
+    options(RCHART_WIDTH = 400)
     
     output$aPlot <- renderUI({
         switch(input$method,  
@@ -1024,16 +1102,19 @@ server10 <- shinyServer(function(input, output, session){
     
     output$ap1 <- renderChart2({
       if(input$method == "bayesian generalized linear" || input$method == "CART" || input$method == "bagged CART" || input$method == "generalized boosted modeling"){
-        ap.list <- accuracy(input$method, input$metric, input$number, input$repeats)
+        ap.list <- accuracy(input$method, input$metric, input$number, input$repeats, input$LOOCV)
         ap1 <- ap.list[[2]]
       }
+      else{
+        return(Highcharts$new())
+      }
     })
-    
+
     output$ap.rf <- DT::renderDataTable({
       if(input$method == "random forest"){
-        rf.list <- accuracy(input$method, input$metric, input$number, input$repeats)
+        rf.list <- accuracy(input$method, input$metric, input$number, input$repeats, input$LOOCV)
         rf.df <- rf.list[[2]]
-        dt.rf <- datatable(rf.df, options = list(autoWidth = FALSE), 
+        dt.rf <- datatable(rf.df, options = list(autoWidth = FALSE, scrollX=TRUE), 
                        class = 'table-bordered table-condensed table-striped table-compact', caption = "Random Forest Confusion Matrix")
         return(dt.rf)
       }
@@ -1041,7 +1122,7 @@ server10 <- shinyServer(function(input, output, session){
       
     output$ap.c50 <- renderPlot({
       if(input$method == "C4.5 algorithm"){
-        ap.list <- accuracy(input$method, input$metric, input$number, input$repeats)
+        ap.list <- accuracy(input$method, input$metric, input$number, input$repeats, input$LOOCV)
         ap.c50 <- plot(ap.list[[2]], main = "Accuracy vs Number of Baggs")
       }
 
@@ -1050,14 +1131,11 @@ server10 <- shinyServer(function(input, output, session){
 
     # Plot info TPR/FPR ROC with diagonal line and legend
     output$rp <- renderPlot({
-      perf1 <- roc("random forest", input$metric, input$number, input$repeats)
+      perf1 <- roc("random forest", "Accuracy", input$number, input$repeats, input$LOOCV)
       if(is.null(perf1)) return(NULL)
-      print(perf1)
-      perf2 <- roc("CART", input$metric2, input$number, input$repeats)
+      perf2 <- roc("CART", "Accuracy", input$number, input$repeats, input$LOOCV)
       if(is.null(perf2)) return(NULL)
-      print(perf2)
-      perf3 <- roc("C4.5 algorithm", input$metric3, input$number, input$repeats)
-      print(perf3)
+      perf3 <- roc("C4.5 algorithm", "Accuracy", input$number, input$repeats, input$LOOCV)
       if(is.null(perf3)) return(NULL)  
       rp <- {plot(perf1, lwd = 5, col = 'blue', yaxt='n', xaxt='n', ann=F )
         abline(a = 0, b= 1)
@@ -1069,42 +1147,37 @@ server10 <- shinyServer(function(input, output, session){
   })
               
     #ROC curve 
-    roc <- function(mt, m, n, r){
-      fit <- ml.model(mt, m, n, r)
-      
-      if(is.null(fit)) return(NULL)
-      
+    roc <- function(mt, m, n, r, ilo){
+      fit <- ml.model(mt, m, n, r, ilo)
       mlo <- ml.obj()
-      if(is.null(mlo$response.f)) return(NULL)
-      
-      if(mlo$correct_factor == 0) return(NULL)
       
       test.data = mlo$test.data
+      twoClass = nlevels(as.factor(test.data$response))
+      validate(need(twoClass == 2, "The ROC plot requires a response variable with two classes only"))
       
       #get predicted values, predictions, and performance for ROC
       Predicted = predict(fit, test.data[,(1:ncol(test.data)-1)], type = 'prob')
-      print(Predicted)
       pred <- prediction(Predicted[,2], as.data.frame(test.data$response), label.ordering = NULL)
       perf <- performance(pred, 'tpr', 'fpr')
       
       return(perf)
     }
     
-    accuracy<- function(mt, m, n, r){
+    accuracy<- function(mt, m, n, r, ilo){
       mlo <- ml.obj()
       test.data = mlo$test.data
-      fit <- ml.model(mt,m,n,r)
-      if(is.null(fit)) return(NULL)
-      if(is.null(mlo$response)) return(NULL)
+      fit <- ml.model(mt, m, n, r, ilo)
       switch(mt,
             "random forest" = {
                  ap = fit$finalModel$confusion
-                 a = fit$results
+                 pred = predict(fit, test.data[,1:ncol(test.data)-1])
+                 actual =  test.data$response
+                 a = table(pred, actual)
             }, 
             "bayesian generalized linear" = { 
-               a = fit$results
                pred = predict(fit, test.data[,1:ncol(test.data)-1])
                actual =  test.data$response
+               a = table(pred, actual)
                dat = mapply(c,as.numeric(pred), actual, SIMPLIFY = FALSE)
                dat = lapply(dat, as.list)
                act.dat = mapply(c, actual,actual, SIMPLIFY = FALSE)
@@ -1119,9 +1192,9 @@ server10 <- shinyServer(function(input, output, session){
                ap$addParams(height = 700)
             },
             "CART" = {
-               a = fit$results
                pred = predict(fit, test.data[,1:ncol(test.data)-1])
                actual =  test.data$response
+               a = table(pred, actual)
                dat = mapply(c,pred,actual, SIMPLIFY = FALSE)
                dat = lapply(dat, as.list)
                act.dat = mapply(c, actual, actual, SIMPLIFY = FALSE)
@@ -1136,13 +1209,15 @@ server10 <- shinyServer(function(input, output, session){
                ap$addParams(height = 700)
             },
             "C4.5 algorithm" = {
-               a = fit$results
-               ap = fit
-            }, 
-            "bagged CART" = { 
-              a = fit$results
               pred = predict(fit, test.data[,1:ncol(test.data)-1])
               actual =  test.data$response
+              a = table(pred, actual)
+              ap = fit
+            }, 
+            "bagged CART" = { 
+              pred = predict(fit, test.data[,1:ncol(test.data)-1])
+              actual =  test.data$response
+              a = table(pred, actual)
               dat = mapply(c,pred,actual, SIMPLIFY = FALSE)
               dat = lapply(dat, as.list)
               act.dat = mapply(c, actual,actual, SIMPLIFY = FALSE)
@@ -1157,9 +1232,9 @@ server10 <- shinyServer(function(input, output, session){
               ap$addParams(height = 700)
               },
             "generalized boosted modeling" = {
-              a = fit$results
               pred = predict(fit, test.data[,1:ncol(test.data)-1])
               actual =  test.data$response
+              a = table(pred,actual)
               dat = mapply(c,pred,actual, SIMPLIFY = FALSE)
               dat = lapply(dat, as.list)
               act.dat = mapply(c, actual,actual, SIMPLIFY = FALSE)
@@ -1188,24 +1263,24 @@ server10 <- shinyServer(function(input, output, session){
     }
     
     
-    output$datasetTable <- DT::renderDataTable(as.data.frame(dataset()), options = list(autoWidth = TRUE), class = 'table-bordered table-condensed table-striped table-compact', caption = "Dataset" )
-    output$mldataTable <- DT::renderDataTable(mlTables('featResp'), options = list(autoWidth = TRUE), class = 'table-bordered table-condensed table-striped table-compact', caption = "Feature and Response variable Matrix" )
-    output$avgValTable <- DT::renderDataTable(mlTables('avgVal'), options = list(autoWidth = TRUE), class = 'table-bordered table-condensed table-striped table-compact', caption = "Average Column Values for Feature Variables" )
-    output$corrValTable <- DT::renderDataTable(mlTables('corrVal'), options = list(autoWidth = TRUE), class = 'table-bordered table-condensed table-striped table-compact', caption = "Correlation of Feature Variables with Response Variable" )
-    output$igTable <- DT::renderDataTable(mlTables('ig'), options = list(autoWidth = TRUE), class = 'table-bordered table-condensed table-striped table-compact', caption = "Information Gain for Feature Variables" )
-    output$ipTable <- DT::renderDataTable(var.imp(input$method, input$metric, input$number, input$repeats)[[1]], options = list(autoWidth = FALSE), class = 'table-bordered table-condensed table-striped table-compact', caption = "Importance Plot Data" )
+    output$datasetTable <- DT::renderDataTable(as.data.frame(dataset()), options = list(autoWidth = TRUE, scrollX=TRUE), class = 'table-bordered table-condensed table-striped table-compact', caption = "Dataset" )
+    output$mldataTable <- DT::renderDataTable(mlTables('featResp'), options = list(autoWidth = TRUE, scrollX=TRUE), class = 'table-bordered table-condensed table-striped table-compact', caption = "Feature and Response variable Matrix" )
+    output$avgValTable <- DT::renderDataTable(mlTables('avgVal'), options = list(autoWidth = TRUE, scrollX=TRUE), class = 'table-bordered table-condensed table-striped table-compact', caption = "Average Column Values for Feature Variables" )
+    output$corrValTable <- DT::renderDataTable(mlTables('corrVal'), options = list(autoWidth = TRUE, scrollX=TRUE), class = 'table-bordered table-condensed table-striped table-compact', caption = "Correlation of Feature Variables with Response Variable" )
+    output$igTable <- DT::renderDataTable(mlTables('ig'), options = list(autoWidth = TRUE, scrollX=TRUE), class = 'table-bordered table-condensed table-striped table-compact', caption = "Information Gain for Feature Variables" )
+    output$ipTable <- DT::renderDataTable(var.imp(input$method, input$metric, input$number, input$repeats, input$LOOCV)[[1]], options = list(autoWidth = FALSE, scrollX=TRUE), class = 'table-bordered table-condensed table-striped table-compact', caption = "Importance Plot Data" )
     output$plotvar1 <- DT::renderDataTable({
-      p.df1 <- plot.obj(input$x, input$y, input$group)
+      p.df1 <- plot.obj(input$x, input$y, input$group, input$factorG, input$factorGVal)
       p.df1.xyg <- cbind.data.frame(p.df1$variables, p.df1$group)
       colnames(p.df1.xyg) <- c(input$x,input$y, input$group)
-      p.dT1 <- datatable(p.df1.xyg, options = list(autoWidth = TRUE), class = 'table-bordered table-condensed table-striped table-compact', caption = "Independent, Dependent, and Group Variable Data for Left Plot" )
+      p.dT1 <- datatable(p.df1.xyg, options = list(autoWidth = TRUE, scrollX=TRUE), class = 'table-bordered table-condensed table-striped table-compact', caption = "Independent, Dependent, and Group Variable Data for Left Plot" )
       return(p.dT1)
     })
     output$plotvar2 <- DT::renderDataTable({
-      p.df2 <- plot.obj(input$x2, input$y2, input$group2)
+      p.df2 <- plot.obj(input$x2, input$y2, input$group2, input$factorG2, input$factorGVal2)
       p.df2.xyg <- cbind.data.frame(p.df2$variables, p.df2$group)
       colnames(p.df2.xyg) <- c(input$x2,input$y2, input$group2)
-      p.dT2 <- datatable(p.df2.xyg, options = list(autoWidth = TRUE), class = 'table-bordered table-condensed table-striped table-compact', caption = "Independent, Dependent, and Group Variable Data for Right Plot" )
+      p.dT2 <- datatable(p.df2.xyg, options = list(autoWidth = TRUE, scrollX=TRUE), class = 'table-bordered table-condensed table-striped table-compact', caption = "Independent, Dependent, and Group Variable Data for Right Plot" )
       return(p.dT2)
     })
     
@@ -1242,6 +1317,6 @@ server10 <- shinyServer(function(input, output, session){
 })
 
 
-shinyApp(ui = ui10, server = server10)
+shinyApp(ui = uiR, server = server16)
 
 
