@@ -25,7 +25,6 @@ library(shinyFiles)
 library(RColorBrewer)
 library(survival)
 library(ggfortify)
-#need package 'e1071'
 
 multicol <- " .multicol {
 
@@ -43,7 +42,7 @@ ui28 <- shinyUI(
   dashboardPage( 
     
     # Application title
-    dashboardHeader(title = "Data-MEDIC -Modeling, Exploration, and Data-Mining in an Interactive Context", titleWidth = 800),
+    dashboardHeader(title = "DATA MINE - Data Analysis Testing And Modeling using Interaction and Numerical Exploration", titleWidth = 800),
     
     #####   SIDE PANEL    
     ################################################################################################################################################################################################################  
@@ -69,8 +68,9 @@ ui28 <- shinyUI(
             "
           )
         ),
-        tags$style(".wrapper {overflow: visible !important;}")
-        #tags$head(tags$style("#corrPlot{height:100vh !important;}"))
+        tags$style(".wrapper {overflow: visible !important;}"),
+        tags$head(tags$style(".shiny-plot-output{height:100vh !important;}"))
+        
       ),  
       width = 300,
       sidebarMenu(id = "sbm",
@@ -85,7 +85,7 @@ ui28 <- shinyUI(
                                    conditionalPanel("input.clean === true", 
                                                     checkboxInput("combine", "Combine with another dataset", FALSE),
                                                     conditionalPanel("input.combine === true",
-                                                                     selectizeInput("mergeby", "How to Merge Data", c("Merge data and keep all data", "Merge data and only keep rows in both datasets", "Merge data and keep all rows in initial data, but not rows from merged dataset"), multiple = F),
+                                                                     selectizeInput("mergeby", "How to Merge Data", c("Merge data and keep all data", "Merge data and only keep rows in both datasets", "Merge data and keep all rows in initial data, but not rows from merged dataset")),
                                                                      selectizeInput('colMerge', "Column Name", c("Loading..."), multiple = T),
                                                                      fileInput("combinefile", ""), 
                                                                      textInput("combinefile_sep", "Field Seperator", value = ","),
@@ -109,7 +109,7 @@ ui28 <- shinyUI(
                                    selectizeInput("plot", "Plot Variables", c("Plot 1 (Left)", "Plot 2 (Right)")),
                                    conditionalPanel("input.plot === 'Plot 1 (Left)'",
                                                     selectizeInput("plotType","Plot 1 Type :", 
-                                                                   c("bar","histogram", "multibar", "density", "single boxplot", "boxplot", "grouped scatter",  "scatter")), 
+                                                                c("bar","histogram", "multibar", "density", "single boxplot", "boxplot", "grouped scatter",  "scatter")), 
                                                     conditionalPanel("input.plotType === 'histogram'", sliderInput("bins","Number of bins:", min = 1, max = 50, value = 3)),
                                                     conditionalPanel("input.plotType === 'boxplot' || input.plotType === 'single boxplot'", checkboxInput("showPoints", "show points", TRUE)),
                                                     conditionalPanel("input.plotType === 'scatter' || input.plotType === 'grouped scatter'", checkboxInput("addTrend", "add trendline", FALSE)),
@@ -128,7 +128,7 @@ ui28 <- shinyUI(
                                    ),
                                    conditionalPanel("input.plot === 'Plot 2 (Right)'",
                                                     selectizeInput("plotType2"," Plot 2 Type:", 
-                                                                   c("bar", "histogram", "multibar", "density", "single boxplot", "boxplot", "grouped scatter",  "scatter")),
+                                                                c("bar", "histogram", "multibar", "density", "single boxplot", "boxplot", "grouped scatter",  "scatter")),
                                                     conditionalPanel("input.plotType2 === 'histogram'", sliderInput("bins2","Number of bins:", min = 1, max = 50, value = 3)),
                                                     conditionalPanel("input.plotType2 === 'boxplot' || input.plotType2 === 'single boxplot'", checkboxInput("showPoints2", "show points", TRUE)),
                                                     conditionalPanel("input.plotType2 === 'scatter' || input.plotType2 === 'grouped scatter'", checkboxInput("addTrend2", "add trendline", FALSE)),
@@ -146,37 +146,21 @@ ui28 <- shinyUI(
                                                     
                                    ),
                                    conditionalPanel("input.plot === 'Plot 1 (Left)'", "Statistical Testing for Plot 1 Variables",
-                                                    selectizeInput("statTest", "Statistical Tests", c("Shapiro-Wilk",  "t-test", "Wilcox rank sum", "Annova", "Kruskal–Wallis", "Chi-Squared", "Fisher's Exact")),
-                                                    textInput('sig', "Significance Threshold", value = .05),
-                                                    conditionalPanel("input.statTest === 't-test'", 
-                                                                     selectizeInput('talternative','Alternative', choices = c("two.sided", "less", "greater"), selected = "two.sided", multiple = F),
-                                                                     div(style = "display:inline-block", checkboxInput('tpaired','Paired', FALSE, width = '100px')), div(style = "display:inline-block", checkboxInput('tvarequal','Equal Variance', FALSE, width = '200px'))
-                                                                     ),  
-                                                    conditionalPanel("input.statTest === 'Wilcox rank sum'", 
-                                                                     selectizeInput('walternative','Alternative', choices = c("two.sided", "less", "greater"), selected = "two.sided", multiple = F),
-                                                                     div(style = "display:inline-block", checkboxInput('wpaired','Paired', FALSE, width = '100px')), div(style = "display:inline-block",checkboxInput('wvarequal','Equal Variance', FALSE, width = '200px'))
-                                                                    )
-                                                    ),
+                                                    selectizeInput("statTest", "Statistical Tests", c("Shapiro-Wilk",  "Two sample t-test", "Paired t-test", "Wilcox rank sum - two sample", "Annova", "Kruskal–Wallis", "Chi-Squared", "Fisher's Exact")),
+                                                    textInput('sig', "Significance Threshold", value = .05)
+                                   ),
                                    conditionalPanel("input.plot === 'Plot 2 (Right)'", "Statistical Test for Plot 2 Variables",
-                                                    selectizeInput("statTest2", "Statistical Tests", c("Shapiro-Wilk",  "t-test", "Wilcox rank sum", "Annova", "Kruskal–Wallis", "Chi-Squared", "Fisher's Exact")),
-                                                    textInput('sig2', "Significance Threshold", value = .05),
-                                                    conditionalPanel("input.statTest === 't-test'", 
-                                                                     selectizeInput('talternative2','Alternative', choices = c("two.sided", "less", "greater"), selected = "two.sided", multiple = F),
-                                                                     div(style = "display:inline-block", checkboxInput('tpaired2','Paired', FALSE, width = '100px')), div(style = "display:inline-block", checkboxInput('tvarequal2','Equal Variance', FALSE, width = '200px'))
-                                                                    ),  
-                                                    conditionalPanel("input.statTest === 'Wilcox rank sum'", 
-                                                                     selectizeInput('walternative2','Alternative', choices = c("two.sided", "less", "greater"), selected = "two.sided", multiple = F),
-                                                                     div(style = "display:inline-block", checkboxInput('wpaired2','Paired', FALSE, width = '100px')), div(style = "display:inline-block",checkboxInput('wvarequal2','Equal Variance', FALSE, width = '200px'))
-                                                                    )
-                                                  )
+                                                    selectizeInput("statTest2", "Statistical Tests", c("Shapiro-Wilk",  "Two sample t-test", "Paired t-test", "Wilcox rank sum - two sample", "Annova", "Kruskal–Wallis", "Chi-Squared", "Fisher's Exact")),
+                                                    textInput('sig2', "Significance Threshold", value = .05)
+                                   )
                   ),
                   #### Correlation and MR
                   ########################
                   menuItem("Correlation, Regression", tabName = "crs", icon = icon("th")),
                   conditionalPanel("input.sbm === 'crs'", "Response Data",
-                                   selectizeInput("corMethod", "Correlation Method", c(eval(formals(cor)$method)), multiple = F),
-                                   selectizeInput("corUse", "NA Action", c("everything", "complete.obs", "na.or.complete", "pairwise.complete.obs"), multiple = F), 
-                                   selectizeInput("plotOrder", "Reorder Correlation", c("original", "AOE", "FPC", "hclust", "alphabet"), multiple = F),
+                                   selectizeInput("corMethod", "Correlation Method", c(eval(formals(cor)$method))),
+                                   selectizeInput("corUse", "NA Action", c("everything", "complete.obs", "na.or.complete", "pairwise.complete.obs")), 
+                                   selectizeInput("plotOrder", "Reorder Correlation", c("original", "AOE", "FPC", "hclust", "alphabet")),
                                    conditionalPanel("input.plotOrder === 'hclust'",
                                                     wellPanel(selectizeInput("plotHclustMethod", "Method",c("ward", "single", "complete", "average", "mcquitty", "median", "centroid")),
                                                               numericInput("plotHclustAddrect", "Number of Rectangles", 3, 0, NA))),
@@ -191,30 +175,30 @@ ui28 <- shinyUI(
                   menuItem("Machine Learning", tabName = "ml", icon = icon("laptop")),
                   conditionalPanel("input.sbm === 'ml'", "",
                                    actionButton("mlButton", "Run Machine Learning"),
-                                   selectizeInput("rdataset", "Response Data", c("dataset", "upload another"), multiple = F),
+                                   selectizeInput("rdataset", "Response Data", c("dataset", "upload another")),
                                    conditionalPanel("input.rdataset === 'upload another'",
                                                     fileInput("rdatafile", ""), 
                                                     textInput("rdatafile_sep", "Field Seperator", value = ",")),
                                    helpText("Testing/Training Set"),
-                                   selectizeInput("testdata", "Testing/Training Set", c("25/75 split", "upload test data"), multiple = F),
+                                   selectizeInput("testdata", "Testing/Training Set", c("25/75 split", "upload test data")),
                                    conditionalPanel("input.testdata === 'upload test data'", "", fileInput("tdatafile", ""), textInput("tdatafile_sep", "Field Seperator", value = ",")),
                                    helpText("Feature Selection and Modeling"),
                                    uiOutput("r"), 
                                    checkboxInput("factorResp", "Factor Response Variable", FALSE),
                                    conditionalPanel("input.factorResp === true", textInput("factorVal", "Factor Cut off Value", value = "0")),
-                                   selectizeInput("fsMethod", "Feature Selection", c("average value" = "average value", "correlation with response" = "correlation with response", "information gain" = "information gain"), multiple = F), 
-                                   selectizeInput('method', "Model Method", c("random forest", "bayesian generalized linear","CART", "C4.5 algorithm", "bagged CART", "generalized boosted modeling"), multiple = F), 
-                                   selectizeInput('metric', "Test Metric for Method", c("Accuracy", "Kappa", "RMSE", "Rsquared"), multiple = F), 
+                                   selectizeInput("fsMethod", "Feature Selection", c("average value" = "average value", "correlation with response" = "correlation with response", "information gain" = "information gain")), 
+                                   selectizeInput('method', "Model Method", c("random forest", "bayesian generalized linear","CART", "C4.5 algorithm", "bagged CART", "generalized boosted modeling")), 
+                                   selectizeInput('metric', "Test Metric for Method", c("Accuracy", "Kappa", "RMSE", "Rsquared")), 
                                    div(style = "display:inline-block",numericInput('number', "Folds for Cross Validation", value = 3, min = 2, max = 15, step = 1, width = '150px')),
                                    div(style = "display:inline-block",checkboxInput("LOOCV","Leave One Out", FALSE)),
                                    numericInput('repeats', "Repeats", value = 1, min = 1, max = 10, step = 1),
                                    checkboxInput('addModel2', "Add Second Model", FALSE),
                                    conditionalPanel("input.addModel2 === true", 
-                                                    selectizeInput('method2', "Second Model", c("random forest", "bayesian generalized linear","CART", "C4.5 algorithm", "bagged CART", "generalized boosted modeling"), multiple = F),
-                                                    selectizeInput('metric2', "Second Model Metric", c("Accuracy", "Kappa", "RMSE", "Rsquared"), multiple = F),
+                                                    selectizeInput('method2', "Second Model", c("random forest", "bayesian generalized linear","CART", "C4.5 algorithm", "bagged CART", "generalized boosted modeling")),
+                                                    selectizeInput('metric2', "Second Model Metric", c("Accuracy", "Kappa", "RMSE", "Rsquared")),
                                                     checkboxInput('addModel3', "Add Third Model", FALSE),
-                                                    conditionalPanel("input.addModel3 === true", selectizeInput('method3', "Third Model", c("random forest", "bayesian generalized linear","CART", "C4.5 algorithm", "bagged CART", "generalized boosted modeling"), multiple = F),
-                                                                     selectizeInput('metric3', "Thrid Model Metric", c("Accuracy", "Kappa", "RMSE", "Rsquared"), multiple = F)
+                                                    conditionalPanel("input.addModel3 === true", selectizeInput('method3', "Third Model", c("random forest", "bayesian generalized linear","CART", "C4.5 algorithm", "bagged CART", "generalized boosted modeling")),
+                                                                     selectizeInput('metric3', "Thrid Model Metric", c("Accuracy", "Kappa", "RMSE", "Rsquared"))
                                                     )
                                    )
                   ),
@@ -276,7 +260,7 @@ ui28 <- shinyUI(
                                            font-weight: bold;
                                            }"
                       ))
-                      ),
+                  ),
                   box(status = "warning", collapsible = TRUE, width = 6, height = 90, solidHeader = FALSE, 
                       h3(textOutput("p2Txt")),
                       tags$head(tags$style("#p2Txt{
@@ -301,23 +285,27 @@ ui28 <- shinyUI(
                       and the grouping variable.", br(), div(style = 'overflow-x: scroll', DT::dataTableOutput("stat.res"))),
                   box(title = "Statistical Test 2 Results", status = "primary", collapsible = TRUE, width = 6, "Shapiro Wilks test is conducted on the independent variable (x). Two sample tests, Annova, and Kruskal-Wallis are conducted on the independent variable (x)
                       and the grouping variable.", br(), div(style = 'overflow-x: scroll', DT::dataTableOutput("stat.res2")))
-                  )
-                  ),
+                )
+        ),
         ####Correlation and MR
         ########################
         tabItem(tabName = "crs",
                 fluidRow(
                   box(title = "Correlation Plot and Multiple Regression Variables",status = "primary", collapsible = TRUE, width = 4, 
+                      radioButtons("corrVariablesStyle", "Variable Selection Style", c("Checkbox", "Selectize"), inline = T),
                       helpText("Choose the variables to display"), 
                       actionButton("selectallCV", label="Select/Deselect all"),
-                      selectizeInput("corrVariables", "", choices = c("Loading..."), multiple = T, options = list(plugins = list("drag_drop", "remove_button")))
+                      conditionalPanel("input.corrVariablesStyle === 'Checkbox'",
+                                       tags$div(class = 'multicol', checkboxGroupInput("corrVariablesCheckbox", "", c("Loading...")))),
+                      conditionalPanel("input.corrVariablesStyle === 'Selectize'",
+                                       selectizeInput("corrVariables", "", choices = c("Loading..."), multiple = T, options = list(plugins = list("drag_drop", "remove_button"))))
                   ),
-                  box(title = "Correlation Plot",status = "primary", collapsible = TRUE, width = 8, plotOutput("corrPlot", width = 900, height = 900))
+                  box(title = "Correlation Plot",status = "primary", collapsible = TRUE, width = 8, plotOutput("corrPlot", width = 600, height = 600))
                 ),
                 
                 fluidRow(
                   box(title = "Regression Independent Variables", status = "primary", collapsible = TRUE, width = 5, selectizeInput("IMRVariables", "Regression Independent Variables", choices = c("Loading..."), multiple = T, options = list(plugins = list("drag_drop", "remove_button")))),
-                  box(title = "Regression Dependent Variable", status = "primary", collapsible = TRUE, width = 4, selectizeInput("DMRVariable", "Regression Dependent Variable", choices = c("Loading..."), options = list(maxItems = 1))),
+                  box(title = "Regression Dependent Variable", status = "primary", collapsible = TRUE, width = 4, selectizeInput("DMRVariable", "Regression Dependent Variable", choices = c("Loading..."), multiple = F)),
                   box(title = "Significance Level for Regression Model ", status = "primary", collapsible = TRUE, width = 3, numericInput("pvalue", "P-value for Regression", 0.05, 0, 1, 0.01))
                 ),
                 fluidRow(
@@ -325,7 +313,7 @@ ui28 <- shinyUI(
                 ),
                 fluidRow(
                   box(title = "Survival Variables", status = "primary", collapsible = TRUE, collapsed = TRUE, width = 5, selectizeInput("survVariables", "Survival Variables", choices = c("Loading..."), multiple = T, options = list(plugins = list("drag_drop", "remove_button")))),
-                  box(title = "Survival Time and Outcome Variable", status = "primary", collapsible = TRUE, collapsed = TRUE, width = 4, selectizeInput("survTimeVariable", "Time to Event Variable", choices = c("Loading..."), options = list(maxItems = 1)), selectizeInput("survOutVariable", "Outcome Variable (needs to be 0 and 1)", choices = c("Loading..."), options = list(maxItems = 1))),
+                  box(title = "Survival Time and Outcome Variable", status = "primary", collapsible = TRUE, collapsed = TRUE, width = 4, selectizeInput("survTimeVariable", "Time to Event Variable", choices = c("Loading..."), multiple = F), selectizeInput("survOutVariable", "Outcome Variable (needs to be 0 and 1)", choices = c("Loading..."), multiple = F)),
                   box(title = "Significance Level Survival Model ", status = "primary", collapsible = TRUE, collapsed = TRUE, width = 3, numericInput("survPvalue", "P-value for Cox Proportional Hazard Survival Analysis", 0.05, 0, 1, 0.01))
                 ),
                 fluidRow(
@@ -334,90 +322,93 @@ ui28 <- shinyUI(
                 fluidRow(
                   box(title = "Survival Output Kaplan-Meier Survival", status = "primary", collapsible = TRUE, collapsed = TRUE, width = 6,  div(style = 'overflow-x: scroll', DT::dataTableOutput("survTable"))),
                   box(title = "Survival Curve", status = "primary", collapsible = TRUE, collapsed = TRUE, width = 6,  uiOutput('survPlot'))
-                )
-                
-        ),
-        tabItem(tabName = "ml",
-                fluidRow(
-                  box(title = "Feature Variables", status = "primary", collapsible = TRUE, width = 5, 
-                      helpText("Choose the variables to display"),
-                      actionButton("selectallML", label="Select/Deselect all"),
-                      selectizeInput("mlvariables", "", choices = c("Loading..."),  options = list(plugins = list("drag_drop", "remove_button")))
-                  ),
-                  box(title = "Feature Selection Plot", status = "primary", collapsible = TRUE, width = 7, uiOutput("fPlot1"))
-                ),
-                fluidRow(
-                  box(title = "Importance Plot from ML Model", status = "primary", collapsible = TRUE, uiOutput("iPlot")),
-                  box(title = "Model Accuracy", status = "primary", collapsible = TRUE, uiOutput("aPlot"))
-                ),
-                fluidRow(
-                  box(title = "Model Accuracy Tables", status = "primary", collapsible = TRUE, width = NULL, div(style = 'overflow-x: scroll', DT::dataTableOutput("a1")),
-                      conditionalPanel("input.addModel2 == true", div(style = 'overflow-x: scroll', DT::dataTableOutput("a2"))), 
-                      conditionalPanel("input.addModel3 == true", div(style = 'overflow-x: scroll', DT::dataTableOutput("a3")))
-                  )
-                ),
-                fluidRow(
-                  box(title = "ROC Curve (For Factored or Two Class Response Variables)", status = "primary", collapsible = TRUE, width = NULL, uiOutput("rPlot"))
-                ),
-                fluidRow(
-                  box(title = "Table One Variables", status = "primary", collapsible = TRUE, width = 5, selectizeInput("tableOneVariables", "Table One Variables", choices = c("Loading..."), multiple = T, options = list(plugins = list("drag_drop", "remove_button")))),
-                  box(title = "Outcome Variable", status = "primary", collapsible = TRUE, width = 3, selectizeInput("tableOneResponse", "Table One Outcome Variable", choices = c("Loading..."), options = list(maxItems = 1)))
-                ),
-                fluidRow( 
-                  column(width = 9,
-                         box(title = "Table One", status = "primary", collapsible = TRUE, width = NULL, div(style = 'overflow-x: scroll', DT::dataTableOutput("tableOne")))
-                  ),
-                  column(width = 3,
-                         box(title = "Change Table One Column Names", status = "primary", collapsible = TRUE, width = NULL, 
-                             uiOutput("tableOneColNamesChange"), 
-                             uiOutput("tableOneNewColName"), actionButton("tableOneColNamesChangeButton", "Change")),
-                         box(title = "Change Table One Row Names", status = "primary", collapsible = TRUE, width = NULL, 
-                             uiOutput("tableOneRowNamesChange"), 
-                             uiOutput("tableOneNewRowName"), actionButton("tableOneRowNamesChangeButton", "Change")),
-                         box(title = "Continuous Variables in Table", status = "primary", collapsible = TRUE, width = NULL, 
-                             helpText("Variables with more than 10 levels/classes are considered continuous. The average and mean are calcualted for Table One."),
-                             textOutput("tableOneContVar"))
-                  )
-                )
-        ),
-        ###### Data tabs        
-        #####################
-        tabItem(tabName = "rsd",
-                fluidRow(
-                  box(title = "Regression Data", status = "primary", collapsible = TRUE, width = NULL,  div(style = 'overflow-x: scroll', DT::dataTableOutput("regDataTable"))),
-                  box(title = "Survival Data", status = "primary", collapsible = TRUE, width = NULL,  div(style = 'overflow-x: scroll', DT::dataTableOutput("survDataTable")))
-                )
-        ),
-        tabItem(tabName = "frd",
-                fluidRow(
-                  box(title = "Feature and Response Data", status = "primary", collapsible = TRUE, width = NULL,  div(style = 'overflow-x: scroll', DT::dataTableOutput("mldataTable")))
-                )
-        ), 
-        tabItem(tabName = 'pd',
-                fluidRow(
-                  box(title = "Plot 1 Data", status = "primary", collapsible = TRUE, div(style = 'overflow-x: scroll', DT::dataTableOutput("plotvar1"))), 
-                  box(title = "Plot 2 Data", status = "primary", collapsible = TRUE, div(style = 'overflow-x: scroll', DT::dataTableOutput("plotvar2")))
-                ), 
-                fluidRow(
-                  box(title = "Corrplot Matrix", status = "primary", collapsible = TRUE, width = NULL, div(style = 'overflow-x: scroll', DT::dataTableOutput("corrPlotTable")))
-                ),
-                fluidRow(
-                  box(title = "Average Value for Features ", status = "primary", collapsible = TRUE, width = NULL, div(style = 'overflow-x: scroll', DT::dataTableOutput("avgValTable")))
-                ),
-                fluidRow(
-                  box(title = "Corrlation between Features and Response Variable", status = "primary", width = NULL, collapsible = TRUE, div(style = 'overflow-x: scroll', DT::dataTableOutput("corrValTable")))
-                ), 
-                fluidRow(
-                  box(title = "Information Gain for Features", status = "primary", collapsible = TRUE, width = NULL, div(style = 'overflow-x: scroll', DT::dataTableOutput("igTable")))
-                ),
-                fluidRow(
-                  box(title = "Importance Data from Machine Learning Model", status = "primary", collapsible = TRUE, width = NULL, div(style = 'overflow-x: scroll', DT::dataTableOutput("ipTable")))
-                )
-                
         )
+        
+      ),
+      tabItem(tabName = "ml",
+              fluidRow(
+                box(title = "Feature Variables", status = "primary", collapsible = TRUE, width = 5, 
+                    radioButtons("mlvariablesStyle", "Variable Selection Style", c("Checkbox", "Selectize"), inline = T),
+                    helpText("Choose the variables to display"),
+                    actionButton("selectallML", label="Select/Deselect all"),
+                    conditionalPanel('input.mlvariablesStyle === "Selectize"', selectizeInput("mlvariables", "", choices = c("Loading..."), multiple = T, options = list(plugins = list("drag_drop", "remove_button")))),
+                    conditionalPanel('input.mlvariablesStyle === "Checkbox"', tags$div( class = 'multicol', checkboxGroupInput("mlvariablesCheckbox", "", c("Loading..."))))
+                ),
+                box(title = "Feature Selection Plot", status = "primary", collapsible = TRUE, width = 7, uiOutput("fPlot1"))
+              ),
+              fluidRow(
+                box(title = "Importance Plot from ML Model", status = "primary", collapsible = TRUE, uiOutput("iPlot")),
+                box(title = "Model Accuracy", status = "primary", collapsible = TRUE, uiOutput("aPlot"))
+              ),
+              fluidRow(
+                box(title = "Model Accuracy Tables", status = "primary", collapsible = TRUE, width = NULL, div(style = 'overflow-x: scroll', DT::dataTableOutput("a1")),
+                    conditionalPanel("input.addModel2 == true", div(style = 'overflow-x: scroll', DT::dataTableOutput("a2"))), 
+                    conditionalPanel("input.addModel3 == true", div(style = 'overflow-x: scroll', DT::dataTableOutput("a3")))
+                )
+              ),
+              fluidRow(
+                box(title = "ROC Curve (For Factored or Two Class Response Variables)", status = "primary", collapsible = TRUE, width = NULL, uiOutput("rPlot"))
+              ),
+              fluidRow(
+                box(title = "Table One Variables", status = "primary", collapsible = TRUE, width = 5, selectizeInput("tableOneVariables", "Table One Variables", choices = c("Loading..."), multiple = T, options = list(plugins = list("drag_drop", "remove_button")))),
+                box(title = "Outcome Variable", status = "primary", collapsible = TRUE, width = 3, selectizeInput("tableOneResponse", "Table One Outcome Variable", choices = c("Loading..."), multiple = F))
+              ),
+              fluidRow( 
+                column(width = 9,
+                       box(title = "Table One", status = "primary", collapsible = TRUE, width = NULL, div(style = 'overflow-x: scroll', DT::dataTableOutput("tableOne")))
+                ),
+                column(width = 3,
+                       box(title = "Change Table One Column Names", status = "primary", collapsible = TRUE, width = NULL, 
+                           uiOutput("tableOneColNamesChange"), 
+                           uiOutput("tableOneNewColName"), actionButton("tableOneColNamesChangeButton", "Change")),
+                       box(title = "Change Table One Row Names", status = "primary", collapsible = TRUE, width = NULL, 
+                           uiOutput("tableOneRowNamesChange"), 
+                           uiOutput("tableOneNewRowName"), actionButton("tableOneRowNamesChangeButton", "Change")),
+                       box(title = "Continuous Variables in Table", status = "primary", collapsible = TRUE, width = NULL, 
+                           helpText("Variables with more than 10 levels/classes are considered continuous. The average and mean are calcualted for Table One."),
+                           textOutput("tableOneContVar"))
+                )
+              )
+      ),
+      ###### Data tabs        
+      #####################
+      tabItem(tabName = "rsd",
+              fluidRow(
+                box(title = "Regression Data", status = "primary", collapsible = TRUE, width = NULL,  div(style = 'overflow-x: scroll', DT::dataTableOutput("regDataTable"))),
+                box(title = "Survival Data", status = "primary", collapsible = TRUE, width = NULL,  div(style = 'overflow-x: scroll', DT::dataTableOutput("survDataTable")))
+              )
+      ),
+      tabItem(tabName = "frd",
+              fluidRow(
+                box(title = "Feature and Response Data", status = "primary", collapsible = TRUE, width = NULL,  div(style = 'overflow-x: scroll', DT::dataTableOutput("mldataTable")))
+              )
+      ), 
+      tabItem(tabName = 'pd',
+              fluidRow(
+                box(title = "Plot 1 Data", status = "primary", collapsible = TRUE, div(style = 'overflow-x: scroll', DT::dataTableOutput("plotvar1"))), 
+                box(title = "Plot 2 Data", status = "primary", collapsible = TRUE, div(style = 'overflow-x: scroll', DT::dataTableOutput("plotvar2")))
+              ), 
+              fluidRow(
+                box(title = "Corrplot Matrix", status = "primary", collapsible = TRUE, width = NULL, div(style = 'overflow-x: scroll', DT::dataTableOutput("corrPlotTable")))
+              ),
+              fluidRow(
+                box(title = "Average Value for Features ", status = "primary", collapsible = TRUE, width = NULL, div(style = 'overflow-x: scroll', DT::dataTableOutput("avgValTable")))
+              ),
+              fluidRow(
+                box(title = "Corrlation between Features and Response Variable", status = "primary", width = NULL, collapsible = TRUE, div(style = 'overflow-x: scroll', DT::dataTableOutput("corrValTable")))
+              ), 
+              fluidRow(
+                box(title = "Information Gain for Features", status = "primary", collapsible = TRUE, width = NULL, div(style = 'overflow-x: scroll', DT::dataTableOutput("igTable")))
+              ),
+              fluidRow(
+                box(title = "Importance Data from Machine Learning Model", status = "primary", collapsible = TRUE, width = NULL, div(style = 'overflow-x: scroll', DT::dataTableOutput("ipTable")))
+              )
+              
+      )
     )
   )
 ))
+
 
 
 server28 <- shinyServer(function(input, output, session){
@@ -441,7 +432,6 @@ server28 <- shinyServer(function(input, output, session){
     else {
       eval(parse(text = datasource))
     }
-    
   })
   
   
@@ -452,7 +442,6 @@ server28 <- shinyServer(function(input, output, session){
       startData <- startDataset()
       values$cleanedData <- startData
       dataset <- values$cleanedData
-      values$mergedStartDataset <- startData
       values$datasource <- input$startDataset
       
       
@@ -482,8 +471,7 @@ server28 <- shinyServer(function(input, output, session){
   observe({
     obj <- dataset()     
     var.opts <- c(colnames(obj))
-    updateSelectizeInput(session, "colMerge", choices = var.opts, options= list(maxItems = 20000, placeholder = 'Please select an option below',
-                                                                                                        onInitialize = I('function() { this.setValue(""); }')))
+    updateselectizeInput(session, "colMerge", choices = var.opts, selected = var.opts[1])
   })
   
   output$removeNACol <- renderUI({
@@ -491,70 +479,73 @@ server28 <- shinyServer(function(input, output, session){
     NASum <- as.data.frame(apply(obj, 2, function(x) sum(is.na(x))))
     colnames(NASum) <- 'ColNASum'
     var.opts <- unique(sort(NASum$ColNASum, decreasing = T))
-    selectizeInput("removeNACol", "NA Cut off for Columns", choices = var.opts, selected = max(var.opts), options= list(maxItems = 1))
+    selectizeInput("removeNACol", "NA Cut off for Columns", choices = var.opts, selected = max(var.opts))
   })
   
   output$removeNARow <- renderUI({
     obj <- dataset()     
     NASum <- apply(obj, 1, function(x) sum(is.na(x)))
     var.opts <- unique(sort(NASum, decreasing = T))
-    selectizeInput("removeNARow", "NA Cut off for Rows" , choices = var.opts, selected = max(var.opts), options= list(maxItems = 1))
+    selectizeInput("removeNARow", "NA Cut off for Rows" , choices = var.opts, selected = max(var.opts), options = list( maxItems = len(numericColumns)))
   })
   
   #updates y, dependent variable for 2D plots 
   output$y <- renderUI({ 
     obj <- dataset()    
     var.opts <- c(" ", colnames(obj))
-    selectizeInput("y","Dependent Variable:", var.opts,  options= list(maxItems = 1, placeholder = 'Please select an option below',
-                                                                   onInitialize = I('function() { this.setValue(""); }'))) # uddate UI                  
+    selectizeInput("y","Dependent Variable:", var.opts, options = list(plugins = list("drag_drop"), maxItems = len(numericColumns), placeholder = 'Please select an option below',
+                                                                       onInitialize = I('function() { this.setValue(""); }'))) # uddate UI                  
   }) 
   
   #updates x, independent variable for plots
   output$x <- renderUI({ 
     obj <- dataset()     
     var.opts <- c(" ", colnames(obj))
-    selectizeInput("x","Independent Variable:", var.opts, options= list(maxItems = 1, placeholder = 'Please select an option below',
-                                                                     onInitialize = I('function() { this.setValue(""); }'))) # uddate UI                 
+    selectizeInput("x","Independent Variable:", var.opts, options = list(plugins = list("drag_drop"), maxItems = len(numericColumns), placeholder = 'Please select an option below',
+                                                                         onInitialize = I('function() { this.setValue(""); }'))) # uddate UI                 
   })
   
   #updates grouping variable for comparing data based on categorical variables such as gender 
   output$group <- renderUI({ 
     obj <- dataset()     
     var.opts <- c(" ",colnames(obj))
-    selectizeInput("group","Grouping Variable: ", choices = var.opts, options= list(maxItems = 1, placeholder = 'Please select an option below',
-                                                                       onInitialize = I('function() { this.setValue(""); }'))) # uddate UI                 
+    selectizeInput("group","Grouping Variable: ", var.opts, options = list(plugins = list("drag_drop"), maxItems = len(numericColumns), placeholder = 'Please select an option below',
+                                                                           onInitialize = I('function() { this.setValue(""); }'))) # uddate UI                 
   })
   
   #updates y for second plot , dependent variable for 2D plots 
   output$y2 <- renderUI({ 
     obj <- dataset()    
     var.opts <- c(" ", colnames(obj))
-    selectizeInput("y2","Dependent Variable:", var.opts,  options= list(maxItems = 1, placeholder = 'Please select an option below',
-                                                                    onInitialize = I('function() { this.setValue(""); }'))) # uddate UI                  
+    selectizeInput("y2","Dependent Variable:", var.opts, options = list(plugins = list("drag_drop"), maxItems = len(numericColumns), placeholder = 'Please select an option below',
+                                                                        onInitialize = I('function() { this.setValue(""); }'))) # uddate UI                  
   }) 
   
   #updates x for second plot, independent variable for plots
   output$x2 <- renderUI({ 
     obj <- dataset()     
     var.opts <- c(" ", colnames(obj))
-    selectizeInput("x2","Independent Variable:", var.opts,  options= list(maxItems = 1, placeholder = 'Please select an option below',
-                                                                         onInitialize = I('function() { this.setValue(""); }'))) # uddate UI                 
+    selectizeInput("x2","Independent Variable:", var.opts, options = list(plugins = list("drag_drop"), maxItems = len(numericColumns), placeholder = 'Please select an option below',
+                                                                          onInitialize = I('function() { this.setValue(""); }'))) # uddate UI                 
   })
   
   #updates grouping variable for second plot for comparing data based on categorical variables such as gender 
   output$group2 <- renderUI({ 
     obj <- dataset()     
     var.opts<-c(" ", colnames(obj))
-    selectizeInput("group2","Grouping Variable: ", var.opts, options= list(maxItems = 1, placeholder = 'Please select an option below',
-                                                                        onInitialize = I('function() { this.setValue(""); }')))
+    selectizeInput("group2","Grouping Variable: ", var.opts, options = list(plugins = list("drag_drop"), maxItems = len(numericColumns), placeholder = 'Please select an option below',
+                                                                            onInitialize = I('function() { this.setValue(""); }'))) # uddate UI                 
   })
+  
+  #update cleanData variables
 
   
   output$remCol <- renderUI({
     obj <- datanames()[[1]]
     var.opts <- obj[c(!obj %in% colnames(dataset()))]
     validate(need(length(var.opts) < 1000, "Too many columns Removed to Display"))
-    selectizeInput("remCol", "Columns Removed in Dataset", choices = var.opts, multiple = T, selected = var.opts, options = list(plugins = list("drag_drop", "remove_button"), maxItems = 20000))
+    selectizeInput("remCol", "Columns Removed in Dataset", choices = var.opts, multiple = T, selected = var.opts, options = list(plugins = list("drag_drop"), maxItems = len(numericColumns), placeholder = 'Please select an option below',
+                                                                                                                                 onInitialize = I('function() { this.setValue(""); }')))
   })
   
   output$remRow <- renderUI({
@@ -562,14 +553,15 @@ server28 <- shinyServer(function(input, output, session){
     var.opts.r <- obj[c(!obj %in% row.names(dataset()))]
     validate(need(length(var.opts.r) < 1000, "Too many Rows Removed to Display"))
     if(length(var.opts.r) > 1000) {var.opts.r = "Too many Rows Removed to Display"}
-    selectizeInput( "remRow", "Rows Removed in Dataset", choices = var.opts.r, multiple = T, selected = var.opts.r, options = list(plugins = list("drag_drop", "remove_button"), maxItems = 20000))
+    selectizeInput( "remRow", "Rows Removed in Dataset", choices = var.opts.r, multiple = T, selected = var.opts.r, options = list(plugins = list("drag_drop"), maxItems = len(numericColumns), placeholder = 'Please select an option below',
+                                                                                                                                                                               onInitialize = I('function() { this.setValue(""); }'))) # uddate UI          )
   })
   
   output$colNamesChange <- renderUI({
     obj <- dataset()  
     var.opts <- colnames(obj)
-    selectizeInput("colNamesChange", "Select Column Label to Change", choices = var.opts, multiple = F, options = list(maxItems = 20000, placeholder = 'Please select an option below',
-                                                                                                    onInitialize = I('function() { this.setValue(""); }')))
+    selectizeInput("colNamesChange", "Select Column Label to Change", choices = var.opts, options= list(maxItems = len(numericColumns), placeholder = 'Please select an option below',
+                                                                                                        onInitialize = I('function() { this.setValue(""); }'))) # uddate UI          
   })
   
   output$newColName <- renderUI({
@@ -581,8 +573,8 @@ server28 <- shinyServer(function(input, output, session){
   output$r <- renderUI({ 
     obj <- rdataset()
     var.opts<-c(colnames(obj))
-    selectizeInput("r","Response Variable: ", var.opts,  options = list(maxItems = 1, placeholder = 'Please select an option below',
-                                                                       onInitialize = I('function() { this.setValue(""); }'))) # uddate UI                 
+    selectizeInput("r","Response Variable: ", var.opts, options= list(maxItems = len(numericColumns), placeholder = 'Please select an option below',
+                                                                      onInitialize = I('function() { this.setValue(""); }'))) # uddate UI                 
   })
   
   #get numeric data
@@ -616,7 +608,7 @@ server28 <- shinyServer(function(input, output, session){
     data = dataset()
     switch(input$mergeby, 
            "Merge data and keep all Data" = {
-             validate(need(length(data) == length(mergedata), "The two datasets for combining, do not have the same number of rows. Consider 'merge by a colum value' or upload a dataset to combine with the same number of rows as the original dataset"))
+             #validate(need(length(data) == length(mergedata), "The two datasets for combining, do not have the same number of rows. Consider 'merge by a colum value' or upload a dataset to combine with the same number of rows as the original dataset"))
              combinedData <- full_join(data, mergedata, by = c(input$colMerge))
            },
            "Merge data and only keep rows in both datasets" = {
@@ -630,7 +622,6 @@ server28 <- shinyServer(function(input, output, session){
            }
     )
     values$cleanedData <- combinedData
-    values$mergedStartData <- combinedData
   })
   
   cleanData <- reactive({
@@ -757,9 +748,12 @@ server28 <- shinyServer(function(input, output, session){
         return(categories)}, data = data)
       var.opts <- unique(unlist(namesList))
     }
-    
-      replacedCol <- selectizeInput("replacedCol", "Value to Replace in Column", choices = c(var.opts), options= list(maxItems = 20000, placeholder = 'Please select an option below',
-                                                                                                                      onInitialize = I('function() { this.setValue(""); }')))
+    if(length(var.opts) < 200){
+      replacedCol <- selectizeInput("replacedCol", "Value to Replace in Column", choices = c(var.opts))
+    }
+    else{
+      replacedCol <- textInput("replacedCol", "Value to Replace in Column", "")
+    }
   })
   
   output$replacedAll <- renderUI({
@@ -767,9 +761,13 @@ server28 <- shinyServer(function(input, output, session){
     namesList <- lapply(1:ncol(data), function(i,data) {categories <- names(table(data[,i]))
     return(categories)}, data = data)
     var.opts <- unique(unlist(namesList))
-    
-     replacedAll <- selectizeInput("replacedAll", "Value to Replace", choices = c(var.opts), options= list(maxItems = 20000, placeholder = 'Please select an option below',
-                                                                                                           onInitialize = I('function() { this.setValue(""); }')))
+    if(length(var.opts) < 200){
+
+      replacedAll <- selectizeInput("replacedAll", "Value to Replace", choices = c(var.opts))
+    }
+    else{
+      replacedAll <- textInput("replacedALL", "Value to Replace ", "")
+    }
     
   })
   
@@ -805,22 +803,18 @@ server28 <- shinyServer(function(input, output, session){
     cleanedData = cleanedData[,newcol]
     
     values$cleanedData <- cleanedData
-      
+    
   })
   
-  observe({
-    originalNames <- datanames()
+  observeEvent(input$removeNAColButton, {
     cleanedData <- dataset()
-    if(is.null(cleanData) || is.null(originalNames)){return}
     
-    if(length(originalNames[[1]]) != length(c(colnames(dataset()),input$remCol))){
-      newcol = colnames(values$mergedStartDataset)[!colnames(values$mergedStartDataset) %in% input$remCol]
-      cleanedData = cleanedData[,newcol]
-    }
-    if(length(originalNames[[2]]) != length(c(row.names(dataset()),input$remRow))){
-      newrow = row.names(values$mergedStartDataset)[!row.names(values$mergedStartDataset) %in% input$remRow]
-      cleanedData = cleanedData[newrow,]
-    }
+    NAColSum <- apply(cleanedData, 2, function(x) sum(is.na(x)))
+    NACol_filtered <- NAColSum[NAColSum > as.numeric(input$removeNACol)]
+    
+    newcol = colnames(cleanedData)[!colnames(cleanedData) %in% names(NACol_filtered)]
+    cleanedData = cleanedData[,newcol]
+    
     values$cleanedData <- cleanedData
   })
   
@@ -854,7 +848,7 @@ server28 <- shinyServer(function(input, output, session){
                                                          buttons = list('copy', 'print', list(extend = 'collection', buttons= c('csv', 'pdf'), text = 'Download'))), class = 'table-bordered table-condensed table-striped table-compact')
   
   output$cleanDataTable <- DT::renderDataTable(dataset(), escape = FALSE, server = T, selection = list(target = 'row+column'),  extensions = c('Buttons', 'ColReorder'), 
-                                               options = list(dom = 'BRrltpi', autoWidth = TRUE, lengthMenu = list(c(10, 50, -1), c('10', '50', 'All')), ColReorder = TRUE, 
+                                               options = list(dom = 'BRrltpi', autoWidth = FALSE, lengthMenu = list(c(10, 50, -1), c('10', '50', 'All')), ColReorder = TRUE, 
                                                               buttons = list('copy', 'print', list(extend = 'collection', buttons= c('csv', 'pdf'), text = 'Download'))), class = 'table-bordered table-condensed table-striped table-compact')
   
   output$lookTxt <- renderText({
@@ -1048,7 +1042,6 @@ server28 <- shinyServer(function(input, output, session){
     values$mlnumber <- input$number
     values$mlrepeats <- input$repeats
     values$mlLOOCV <- input$LOOCV
-    values$response <- input$r
   })
   
  
@@ -1060,11 +1053,11 @@ server28 <- shinyServer(function(input, output, session){
   
   #Plot Data
   output$plot1 <- renderUI({
-    plotlyOutput("p1", width = '100%', height = '100%')
+    plotlyOutput("p1")
   })
   
   output$plot2 <- renderUI({
-    plotlyOutput("p2", width = '100%', height = '100%')
+    plotlyOutput("p2" )
   })
   
   output$p1 <- renderPlotly({
@@ -1116,8 +1109,8 @@ server28 <- shinyServer(function(input, output, session){
       getPalette = colorRampPalette(brewer.pal(9, c))
     }else{
       if(c == "Solid Blue"){ getPalette = brewer.pal(9, "Blues")[8]}
-      if(c == "Solid Blue"){ getPalette = brewer.pal(9, "Greys")[6]}
-      if(c == "Solid Blue"){ getPalette = brewer.pal(9, "Reds")[7]}
+      if(c == "Solid Grey"){ getPalette = brewer.pal(9, "Greys")[6]}
+      if(c == "Solid Red"){ getPalette = brewer.pal(9, "Reds")[7]}
     }
     
     xaxis = ifelse(xa == "", xaxisDf, xa)
@@ -1212,19 +1205,13 @@ server28 <- shinyServer(function(input, output, session){
   }
   
   #statistical Testing
-  stat.tests <- function(st, sig, ta, wa, tp, wp, wve, tve, x, y, g, fg, fgv, f, fv, f2, fv2, f3, fv3){
+  stat.tests <- function(st, sig, x, y, g, fg, fgv, f, fv, f2, fv2, f3, fv3){
     var.df <- plot.obj(x,y,g, fg, fgv, f, fv, f2, fv2, f3, fv3)
     if(!is.null(var.df$variables)){
       groups = cbind.data.frame(as.numeric(var.df$x), droplevels(as.factor(var.df$group)))
       colnames(groups) <- c('x','g')
       conf.level = 1 - as.numeric(sig)
       p.val = sig
-      talternative = ta
-      walternative = wa
-      tpaired = tp
-      wpaired = wp 
-      wvarequal = wve
-      tvarequal = tve
       x.st = as.numeric(var.df$x)
       x.g.sort <- groups[order(groups$g),]
       colnames(x.g.sort) <- c("x", "g")
@@ -1238,30 +1225,39 @@ server28 <- shinyServer(function(input, output, session){
                         tab <- cbind(t$statistic, t$p.value)
                         colnames(tab) <- c("W-statistic", "P-value")
                         row.names(tab) <- c("Shapiro-Wilk")},
-                      "t-test" = {validate(need(nlevels(groups$g) == 2, "A t-test requires exactly two groups, consider using Annova or factoring the grouping variable"))
-                        t <- t.test(x ~ g, conf.level = conf.level, data = groups, alternative = talternative, paired = tpaired, var.equal = tvarequal)
-                        tab <- rbind(t$statistic, t$parameter, t$p.value, t$conf.int[1], t$conf.int[2],t$estimate[1], t$estimate[2], t$alternative, t$method)
-                        row.names(tab) <- c("T-statistic","Degrees of Freedom", "P-value", "Conf Int Low", "Conf Int High", "Mean Group 1", "Mean Group 2", "Alternative", "Method")},
-                      "Wilcox rank sum" = {validate(need(nlevels(groups$g) == 2, "A Wilcox rank sum test requires exactly two groups, consider using Annova or factoring the grouping variable"))
-                        t <- wilcox.test(x ~ g, conf.level = conf.level, data = groups, conf.int = T, alternative = walternative, paired = wpaired, var.equal = wvarequal)
-                        tab <- rbind(t$statistic, t$p.value, t$alternative, t$method)
-                        row.names(tab) <- c("W-statistic", "P-value", "Alternative", "Method")},
-                      "ANOVA" =  {t <- aov(x ~ g, data = x.g.sort)
-                        tab <- as.data.frame(summary(t)[[1]])
-                        row.names(tab) <- c(g,"Residuals")
+                      "Two sample t-test" = {validate(need(nlevels(groups$g) == 2, "A t-test requires exactly two groups, consider using Annova or factoring the grouping variable"))
+                        t <- t.test(x ~ g, conf.level = conf.level, data = groups)
+                        tab <- cbind(t$statistic, t$p.value)
+                        colnames(tab) <- c("T-statistic", "P-value")
+                        row.names(tab) <- c("Welch Two Sample t-test")}, 
+                      "Paired t-test" = {validate(need(nlevels(groups$g) == 2, "A t-test requires exactly two groups, consider using Annova or factoring the grouping variable"))
+                        validate(need(table(groups$g)[1] == table(groups$g)[2], "A Paired t-test requires paired observations for each group, consider using two sample t-test"))
+                        t <- t.test(x ~ g, conf.level = conf.level, data = groups, paired = TRUE)
+                        tab <- cbind(t$statistic, t$p.value)
+                        colnames(tab) <- c("T-statistic", "P-value")
+                        row.names(tab) <- c("Welch Paired t-test")
+                      },
+                      "Wilcox rank sum - two sample" = {validate(need(nlevels(groups$g) == 2, "A Wilcox rank sum test requires exactly two groups, consider using Annova or factoring the grouping variable"))
+                        t <- wilcox.test(x ~ g, conf.level = conf.level, data = groups)
+                        tab <- cbind(t$statistic, t$p.value)
+                        colnames(tab) <- c("W-statistic", "P-value")
+                        row.names(tab) <- c("Wilcoxon rank sum test with continuity correction")},
+                      "Annova" =  {t <- aov(x ~ g, data = x.g.sort)
+                      tab <- as.data.frame(summary(t)[[1]])
+                      row.names(tab) <- c(g,"Residuals")
                       },
                       "Kruskal–Wallis" = {t <- kruskal.test(x  ~ g , data = x.g.sort)
-                        tab <- rbind(t$statistic, t$parameter, t$p.value, t$method)
-                        row.names(tab) <- c("Chi-squared", "Degrees of Freedom", "P-value", "Method")
+                      tab <- cbind(t$statistic, t$p.value)
+                      colnames(tab) <- c("Chi-squared", "P-value")
                       },
                       "Chi-Squared" = {t <- chisq.test(table(contig), correct = FALSE)
-                        tab <- rbind(t$statistic, t$parameter, t$p.value, t$method)
-                        row.names(tab) <- c("Chi-Squared", "Degrees of Freedom", "P-value", "Method")
+                      tab <- cbind(t$statistic, t$p.value)
+                      colnames(tab) <- c("Chi-Squared", "P-value")
                       }, 
                       "Fisher's Exact" = {validate(need(fish.dim[1] & fish.dim[2] == 2, "Please use variables that are binary (2 levels), consider factoring the variable or chosing a different test"))
                         t <- fisher.test(contig)
-                        tab <- rbind(t$estimate, t$p.value, t$alternative, t$method)
-                        row.names <- c("Odds Ratio", "P-Value", "Alternative", "Method")
+                        tab <- cbind(t$estimate, t$p.value)
+                        colnames(tab) <- c("Odds Ratio", "P-Value")
                         row.names(tab) <- c("Fisher's Exact")
                       }
       )
@@ -1273,60 +1269,72 @@ server28 <- shinyServer(function(input, output, session){
   output$statTxt <- renderText("Shapiro Wilks test is conducted on the independent variables. Two sample tests, Annova, and Kruskal-Wallis are conducted on the independent variables
                                and the grouping variables")
   
-  output$stat.res <- DT::renderDataTable(stat.tests(input$statTest, input$sig, input$talternative, input$walternative, input$tpaired, input$wpaired, input$wvarequal, input$tvarequal,input$x, input$y, input$group, input$factorG, input$factorGVal, input$filter, input$filterVal, input$filter2, input$filterVal2, input$filter3, input$filterVal3), escape = FALSE,
+  output$stat.res <- DT::renderDataTable(stat.tests(input$statTest, input$sig, input$x, input$y, input$group, input$factorG, input$factorGVal, input$filter, input$filterVal, input$filter2, input$filterVal2, input$filter3, input$filterVal3), escape = FALSE,
                                          extensions = c('Buttons', 'ColReorder'), 
                                          options = list(dom = 'BRrltpi', autoWidth = TRUE, lengthMenu = list(c(10, 50, -1), c('10', '50', 'All')), ColReorder = TRUE,
                                                         buttons = list('copy', 'print', list(extend = 'collection', buttons= c('csv', 'pdf'), text = 'Download'), I('colvis'))),class = 'table-bordered table-condensed table-striped table-compact')
   
-  output$stat.res2 <- DT::renderDataTable(stat.tests(input$statTest2, input$sig2, input$talternative2, input$walternative2, input$tpaired2, input$wpaired2, input$wvarequal2, input$tvarequal2, input$x2, input$y2, input$group2,  input$factorG2, input$factorGVal2input$filterp2, input$filterValp2, input$filterp22, input$filterValp22, input$filterp23, input$filterValp23), escape = FALSE,
+  output$stat.res2 <- DT::renderDataTable(stat.tests(input$statTest2, input$sig2, input$x2, input$y2, input$group2,  input$factorG2, input$factorGVal2input$filterp2, input$filterValp2, input$filterp22, input$filterValp22, input$filterp23, input$filterValp23), escape = FALSE,
                                           extensions = 'Buttons', options = list(dom = 'Bfrtip', autoWidth = TRUE, lengthMenu = list(c(10, 50, -1), c('10', '50', 'All')), ColReorder = TRUE, 
                                                          buttons = list('copy', 'print', 'csv')), class = 'table-bordered table-condensed table-striped table-compact')
   
   ##### Correlation and Multiple Regression
   ################################################################################################################################################################################################################
   
-  #update correlation variables 
+  #update correlation variables
   observe({
     if(length(cont_cat()) < 2){selected = numericColumns()} else{selected = cont_cat()}
-    updateSelectizeInput(session, "corrVariables", choices = numericColumns(), selected = selected, options= list(maxItems = 20000, plugins = list("drag_drop", "remove_button")))
+    updateSelectizeInput(session, "corrVariables", choices = numericColumns(), selected = cont_cat(), max)
   })
-  
-
   
   observe({
     if (input$selectallCV > 0) {
       if (input$selectallCV %% 2 == 0){
-        updateSelectizeInput(session=session, "corrVariables",  selected = numericColumns(), options= list(maxItems = 20000, plugins = list("drag_drop", "remove_button")))
+        updateSelectizeInput(session=session, "corrVariables", choices = numericColumns(), selected = numericColumns())
+        
       }
       else {
-        updateSelectizeInput(session=session, "corrVariables",  selected = c(character(0)), options= list(maxItems = 20000, plugins = list("drag_drop", "remove_button")))
+        updateSelectizeInput(session=session, "corrVariables", choices = numericColumns(), selected = c(character(0)))
+        
       }}
   })
   
   
   observe({
-    updateSelectizeInput(session, "IMRVariables", choices = numericColumns(), options= list(maxItems = 20000, placeholder = 'Please select variable(s) below',
-                                                                                            onInitialize = I('function() { this.setValue(""); }')))
+    updateSelectizeInput(session, "IMRVariables", choices = numericColumns(), 
+                         options = list(maxItems = len(numericColumns),
+                           placeholder = 'Please select the independent predictors or covariates',
+                           onInitialize = I('function() { this.setValue(""); }')
+                         ))
   })
   
   observe({
-    updateSelectizeInput(session, "DMRVariable", choices = numericColumns(), options= list(maxItems = 1, placeholder = 'Please select a variable below',
-                                                                                                                        onInitialize = I('function() { this.setValue(""); }')))
+    updateSelectizeInput(session, "DMRVariable", choices = numericColumns(), selected = numericColumns()[1], maxItems = len(numericColumns),
+                         options = list(maxItems = len(numericColumns),
+                           placeholder = 'Please select an Dependent or outcome variable',
+                           onInitialize = I('function() { this.setValue(""); }')
+                         ))
   })
   
   observe({
-    updateSelectizeInput(session, "survVariables", choices = numericColumns(), options= list(maxItems = 20000, placeholder = 'Please select a survival variable',
-                                                                                          onInitialize = I('function() { this.setValue(""); }')))
+    updateSelectizeInput(session, "survVariables", choices = numericColumns(), options = list( maxItems = len(numericColumns),
+      placeholder = 'Please select a predictor or covariates',
+      onInitialize = I('function() { this.setValue(""); }'))
+    )
   })
   
   observe({
-    updateSelectizeInput(session, "survOutVariable", choices = numericColumns(), options= list(maxItems = 1, placeholder = 'Please select a survival outcome',
-                                                                                                                            onInitialize = I('function() { this.setValue(""); }')))
+    updateSelectInput(session, "survOutVariable", choices = numericColumns(), selected = numericColumns()[1], options = list(maxItems = len(numericColumns),      
+      placeholder = 'Please select an outcome below',
+      onInitialize = I('function() { this.setValue(""); }')
+    ))
   })
 
   observe({
-    updateSelectizeInput(session, "survTimeVariable", choices = numericColumns(), options= list(maxItems = 1, placeholder = 'Please select Time to Event variable',
-                                                                                             onInitialize = I('function() { this.setValue(""); }')))
+    updateSelectInput(session, "survTimeVariable", choices = numericColumns(), options = list(maxItems = len(numericColumns),      
+      placeholder = 'Please select time to survival variable',
+      onInitialize = I('function() { this.setValue(""); }'))
+    )
   })
   
   # NA output warning
@@ -1348,9 +1356,9 @@ server28 <- shinyServer(function(input, output, session){
   #correlation and correlation test
   correlation <- reactive({
     data <- dataset()
-    corrvariables <- input$corrVariables
+    corrvariables <- input$corrVariablesCheckbox
     validate(need(input$startDataset != "", "Please select a dataset"))
-    validate(need(length(corrvariables) >= 2 , "Please select atleast 2 variables for correlation plot"))
+    validate(need(length(corrvariables) >= 2 , "Please select atleast 2 varialbes for correlation plot"))
     if(!length(intersect(corrvariables, colnames(data)))) {
       NULL
     } else {
@@ -1378,7 +1386,7 @@ server28 <- shinyServer(function(input, output, session){
     
     
     #options for correlation plot     
-    corrplot::corrplot(corrvals, method = "circle", order = order, p.mat = p.mat , sig.level = sig.level, insig = in.sig , tl.pos = "lt",  tl.col = "black")
+    corrplot::corrplot(corrvals, method = "circle", order = order, p.mat = p.mat , sig.level = sig.level, insig = in.sig , tl.pos = "lt",  tl.col = "black", tl.srt = 45)
     
   })
   
@@ -1420,58 +1428,48 @@ server28 <- shinyServer(function(input, output, session){
     if(is.null(sv) || is.null(outv) || is.null(TtoE)){return(NULL)}
     y <- paste('Surv(',TtoE,',' ,outv,')')
     n <- c(sv)
+    print('cox, sv var')
     f <- as.formula(paste(y, "~", paste(n[!n %in% y], collapse = " + ")))
     f
+    print(f)
     cox.surv <- coxph(f,data=dataset)
     cox <- cbind.data.frame(summary(cox.surv)$coefficients, summary(cox.surv)$logtest[1], summary(cox.surv)$logtest[3])
-    colnames(cox) <- c("Coefficient", "Exp(Coefficient)", "Std. Error", "z", 'p-value', "log-test Score", "log-test p-value")
-    survResults <- cox
+    colnames(cox) <- c("Coefficient", "Exp(Coefficient)", "Std. Error", "z", 'p-value', "log test score", "log test p-value")
+    
+    sfit <- survfit(f, data = dataset)
+    survResults <- c(list(cox), list(sfit))
+    print(survResults)
     return(survResults)
   }
   
-  KM.surv <- function(dataset, TtoE, outv, sv){
-    if(is.null(sv) || is.null(outv) || is.null(TtoE)){return(NULL)}
-    y <- paste('Surv(',TtoE,',' ,outv,')')
-    n <- c(sv)
-    f <- as.formula(paste(y, "~", paste(n[!n %in% y], collapse = " + ")))
-    f
-    
-
-    KM.surv <- survdiff(formula = f, data = dataset)
-    KM <- cbind.data.frame(KM.surv$n, KM.surv$obs, KM.surv$exp, KM.surv$chisq, pchisq(KM.surv$chisq, length(KM.surv$n)-1, lower.tail = FALSE))
-    colnames(KM) <- c("Groups", "Freq", "N Observations", "N Expected", "Chi-Sq", "p-value")
-
-    survResults <- KM
-    return(survResults)
-  }
   output$cox <- DT::renderDataTable(server = F, {
     validate(need(input$startDataset != "", "Please select a dataset"))
     validate(need(input$survOutVariable != 0, "Please make sure a dataset is selected and the indpendent and dependent variables are set"))
     validate(need(input$survVariables != 0, "Please make sure a dataset is selected and the indpendent and dependent variables are set"))
     validate(need(input$survTimeVariable != 0, "Please make sure a dataset is selected and the indpendent and dependent variables are set"))
     validate(need(all.equal(levels(as.factor(dataset()[,input$survOutVariable])), c(0,1)), "Please make sure the outcome variable is two levels and has values 0 and 1"))
-    cox.df <- cox.surv(dataset(), input$survTimeVariable, input$survOutVariable, input$survVariables)
+    cox.df <- cox.surv(dataset(), input$survTimeVariable, input$survOutVariable, input$survVariables)[[1]]
     survTable <- datatable(cox.df, escape = FALSE, extensions = list('Buttons' = NULL, 'ColReorder' = NULL, 'RowReorder' = NULL), 
                            options = list(dom = 'BRrltpi', autoWidth = TRUE, lengthMenu = list(c(10, 50, -1), c('10', '50', 'All')), ColReorder = TRUE, RowReorder = TRUE, 
                                           buttons = list('copy', 'print', list(extend = 'collection', buttons= c('csv', 'pdf'), text = 'Download'), I('colvis'))), 
                            class = 'table-bordered table-condensed table-striped table-compact', caption = "Cox Proportional Hazards Results") %>%
-      formatStyle(c('p-value','log-test p-value'), color = styleInterval(input$survPvalue, c('red','black')), backgroundColor = styleInterval(input$survPvalue, c('yellow', 'white'))) %>%
+      formatStyle(c('p-value','log test p-value'), color = styleInterval(input$survPvalue, c('red','black')), backgroundColor = styleInterval(input$survPvalue, c('yellow', 'white'))) %>%
       formatRound(1:length(cox.df), 5)
     return(survTable)
   })
   
-  output$KappM <- DT::renderDataTable(server = F, {
+  output$survTable <- DT::renderDataTable(server = F, {
     validate(need(input$startDataset != "", "Please select a dataset"))
     validate(need(input$survOutVariable != 0, "Please make sure a dataset is selected and the indpendent and dependent variables are set"))
     validate(need(length(input$survVariables) == 1, "For Kaplan-Meier Data and Survival Plot please use One Survival Variable"))
     validate(need(input$survTimeVariable != 0, "Please make sure a dataset is selected and the indpendent and dependent variables are set"))
     validate(need(all.equal(levels(as.factor(dataset()[,input$survOutVariable])), c(0,1)), "Please make sure the outcome variable is two levels and has values 0 and 1"))
-    KM.df <- KM.surv(dataset(), input$survTimeVariable, input$survVariables, input$survOutVariable)
-    survTable <- datatable(KM.df,  escape = FALSE, extensions = list('Buttons', 'ColReorder'), 
+    surv <- cox.surv(dataset(), input$survTimeVariable, input$survVariables, input$survOutVariable)[[2]]
+    surv.df <- as.data.frame(summary(surv)$table)
+    survTable <- datatable(surv.df,  escape = FALSE, extensions = list('Buttons', 'ColReorder'), 
                            options = list(dom = 'Bfrtip', buttons = c('copy', 'csv', 'pdf', 'print'), autoWidth = T, colReorder = TRUE),
                            class = 'table-bordered table-condensed table-striped table-compact', caption = "Survival Data Summary") %>% 
-      formatStyle(c('p-value'), color = styleInterval(input$survPvalue, c('red','black')), backgroundColor = styleInterval(input$survPvalue, c('yellow', 'white'))) %>%
-      formatRound(1:length(KM.df), 5)
+      formatRound(1:length(surv.df), 5)
     return(survTable)
   })
   
@@ -1481,7 +1479,7 @@ server28 <- shinyServer(function(input, output, session){
     validate(need(input$survVariables != 0, "Please make sure a dataset is selected and the indpendent and dependent variables are set"))
     validate(need(input$survTimeVariable != 0, "Please make sure a dataset is selected and the indpendent and dependent variables are set"))
     validate(need(all.equal(levels(as.factor(dataset()[,input$survOutVariable])), c(0,1)), "Please make sure the outcome variable is two levels and has values 0 and 1"))
-    plotlyOutput("survP", width = "100%", height = "100%")
+    plotlyOutput("survP", height = 400)
   })
   
   
@@ -1521,36 +1519,44 @@ server28 <- shinyServer(function(input, output, session){
   
   #Update ML variable selection
   observe({
-    updateSelectizeInput(session, "mlvariables", choices = numericColumns(), selected = numericColumns(), options= list(maxItems = 20000, plugins = list("drag_drop", "remove_button")))
+    updateCheckboxGroupInput(session, "mlvariablesCheckbox", choices = numericColumns(), selected = numericColumns())
+    
+    updateSelectInput(session, "mlvariables", choices = numericColumns(), selected = numericColumns())
+  })
+  
+  #Link ML variable Selection
+  observe({
+    if(input$mlvariablesStyle == "Checkbox") {
+      updateCheckboxGroupInput(session, "mlvariablesCheckbox", selected = isolate(input$mlvariables))
+    }
+  })
+  
+  observe({
+    updateSelectizeInput(session, "mlvariables", selected = input$mlvariablesCheckbox)
   })
   
   observe({
     if (input$selectallML > 0) {
       if (input$selectallML %% 2 == 0){
-        updateSelectizeInput(session=session, "mlvariablesCheckbox", selected = numericColumns(), options= list(maxItems = 20000, plugins = list("drag_drop", "remove_button")))
+        updateCheckboxGroupInput(session=session, "mlvariablesCheckbox", selected = numericColumns())
         
       }
       else {
-        updateSelectizeInput(session=session, "mlvariablesCheckbox", selected = c(character(0)), options= list(maxItems = 20000, plugins = list("drag_drop", "remove_button")))
+        updateCheckboxGroupInput(session=session, "mlvariablesCheckbox", selected = c(character(0)))
         
       }}
   })
   
   observe({
-    updateSelectizeInput(session, "tableOneVariables", choices = datanames()[[1]], options= list(maxItems = 20000, placeholder = 'Please select an option below',
-                                                                                              onInitialize = I('function() { this.setValue(""); }')))
+    updateSelectInput(session, "tableOneVariables", choices = datanames()[[1]])
   })
   
-  observe({
-    updateSelectizeInput(session, "tableOneVariables", choices = datanames()[[1]], options= list(maxItems = 20000, placeholder = 'Please select an option below',
-                                                                                              onInitialize = I('function() { this.setValue(""); }')))
-  })
+
   
   observe({
     obj <- datanames()[[1]]
     var.opts<-unique(c(colnames(rdataset()), obj))
-    updateSelectizeInput(session, "tableOneResponse", choices = var.opts, options= list(maxItems = 20000, placeholder = 'Please select an option below',                                                                                   
-                                                                                        onInitialize = I('function() { this.setValue(""); }')))
+    updateselectizeInput(session, "tableOneResponse", choices = var.opts)
   })
   
   
@@ -1598,16 +1604,16 @@ server28 <- shinyServer(function(input, output, session){
   })
   
   require(rCharts)
-  options(RCHART_WIDTH = 650)
+  
   output$aPlot <- renderUI({
     validate(need(input$mlButton != 0 , "Please set Machine Learning Variables and Options and Click the 'Run Machine Learning' button"))
     validate(need(!is.null(values$datasource), "Please set Machine Learning Variables and Options and Click the 'Run Machine Learning' button"))
     switch(input$method,  
            "random forest" = div(style = 'overflow-x: scroll', dataTableOutput("ap.rf")), 
            "bayesian generalized linear" = showOutput("ap1", "highcharts"),
-           "CART" =  showOutput("ap1", "highcharts"),
+           "CART" = showOutput("ap1", "highcharts"),
            "C4.5 algorithm"= plotOutput("ap.c50"),
-           "bagged CART" =  showOutput("ap1", "highcharts"),
+           "bagged CART" = showOutput("ap1", "highcharts"),
            "generalized boosted modeling" = showOutput("ap1", "highcharts")
     )
   })
@@ -1750,7 +1756,7 @@ server28 <- shinyServer(function(input, output, session){
   
   #model based on input 
   ml.model <- function(mt, m, n, r, ilo){
-    mlo <- ml.obj(values$mlvariables, dataset(), rdataset(), input$factorVal, input$factorResp, input$testdata, input$datafile, values$response)
+    mlo <- ml.obj(values$mlvariables, dataset(), rdataset(), input$factorVal, input$factorResp, input$testdata, input$datafile, input$r)
     nt = 1
     
     
@@ -1783,7 +1789,6 @@ server28 <- shinyServer(function(input, output, session){
     
     return(model)
   }
-  
   
   #Importance plot or linear model summary based on input 
   var.imp <- function(mt, m, n, r, ilo){
@@ -1825,7 +1830,7 @@ server28 <- shinyServer(function(input, output, session){
              ip$xAxis(categories = rownames(importance$importance))
              ip$yAxis(title = list(text = "Importance"))
              ip$data(name = "Features", as.numeric(importance$Overall))
-             #ip$addParams(height = 700)
+             ip$addParams(height = 700)
            },
            "bagged CART" = {
              importance = varImp(fit)
@@ -1837,7 +1842,7 @@ server28 <- shinyServer(function(input, output, session){
              ip$xAxis(categories = rownames(importance$importance))
              ip$yAxis(title = list(text = "Importance"))
              ip$data(name = "Features", as.numeric(importance$importance$Overall))
-             #ip$addParams(height = 700)
+             ip$addParams(height = 700)
            },
            "generalized boosted modeling" = {
              imp.df = as.data.frame(summary(fit))
@@ -1848,7 +1853,7 @@ server28 <- shinyServer(function(input, output, session){
              ip$xAxis(categories = rownames(imp.df))
              ip$yAxis(title = list(text = "Relative Influence"))
              ip$data(name = "Features", as.numeric(imp.df$rel.inf))
-             #ip$addParams(height = 700)
+             ip$addParams(height = 700)
            }
     )
     df_ip <- list(imp.df, ip)
@@ -1856,7 +1861,7 @@ server28 <- shinyServer(function(input, output, session){
   }
   
   fs.plot<-function(fst){
-    mlo <- ml.obj(values$mlvariables, dataset(), rdataset(), input$factorVal, input$factorResp, input$testdata, input$datafile, values$response) 
+    mlo <- ml.obj(values$mlvariables, dataset(), rdataset(), input$factorVal, input$factorResp, input$testdata, input$datafile, input$r) 
     validate(need(input$mlButton != 0 , "Please set Machine Learning Variables and Options and Click the 'Run Machine Learning' button"))
     validate(need(!is.null(values$datasource), "Please set Machine Learning Variables and Options and Click the 'Run Machine Learning' button"))
     switch(fst,
@@ -1891,7 +1896,7 @@ server28 <- shinyServer(function(input, output, session){
   #ROC curve 
   roc <- function(mt, m, n, r, ilo){
     fit <- ml.model(mt, m, n, r, ilo)
-    mlo <- ml.obj(values$mlvariables, dataset(), rdataset(), input$factorVal, input$factorResp, input$testdata, input$datafile, values$response) 
+    mlo <- ml.obj(values$mlvariables, dataset(), rdataset(), input$factorVal, input$factorResp, input$testdata, input$datafile, input$r) 
     
     test.data = mlo$test.data
     twoClass = nlevels(as.factor(test.data$response))
@@ -1906,7 +1911,7 @@ server28 <- shinyServer(function(input, output, session){
   }
   
   accuracy <- function(mt, m, n, r, ilo){
-    mlo <- ml.obj(values$mlvariables, dataset(), rdataset(), input$factorVal, input$factorResp, input$testdata, input$datafile, values$response) 
+    mlo <- ml.obj(values$mlvariables, dataset(), rdataset(), input$factorVal, input$factorResp, input$testdata, input$datafile, input$r) 
     test.data = mlo$test.data
     fit <- ml.model(mt, m, n, r, ilo)
     switch(mt,
@@ -2098,7 +2103,7 @@ server28 <- shinyServer(function(input, output, session){
    row.names(tot_tbl) <- c("Total (N (%))")
    
    tableOne <-  do.call("rbind", c(list(as.data.frame(tot_tbl)), var_tables))
-   tableOne <- cbind.data.frame(row.names(tableOne), tableOne)
+   tableONe <- cbind.data.frame(row.names(tableOne), tableOne)
    values$tableOne <- tableOne
    return(tableOne)
   }
@@ -2171,7 +2176,7 @@ server28 <- shinyServer(function(input, output, session){
   ################################################################################################################################################################################################################      
   
   mlTables <- function(tablename){
-    mlo <- ml.obj(values$mlvariables, dataset(), rdataset(), input$factorVal, input$factorResp, input$testdata, input$datafile, values$response) 
+    mlo <- ml.obj(values$mlvariables, dataset(), rdataset(), input$factorVal, input$factorResp, input$testdata, input$datafile, input$r) 
     tab <- with(mlo, get(tablename))
     return(tab)
   }
